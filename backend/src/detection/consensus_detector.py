@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 import config
 from src.algorithms.anomaly_detectors import IsolationForestCustom, LocalOutlierFactorCustom

@@ -23,6 +23,10 @@ def main():
     vote_threshold = int(sys.argv[2]) if len(sys.argv) > 2 else config.CONSENSUS_VOTE_THRESHOLD
     config.REFERENCE_QUANTILE = quantile
     config.CONSENSUS_VOTE_THRESHOLD = vote_threshold
+    if len(sys.argv) > 3:
+        config.NEIGHBOUR_DEVIATION_THRESHOLD = float(sys.argv[3])
+    if len(sys.argv) > 4:
+        config.NEIGHBOUR_AGREEMENT_THRESHOLD = float(sys.argv[4])
 
     dataset, clean_wide = load_dataset()
     rules = mine_weather_rules(clean_wide.reset_index())
@@ -65,6 +69,8 @@ def main():
     summary = {
         "quantile": quantile,
         "vote_threshold": vote_threshold,
+        "neighbour_deviation_threshold": config.NEIGHBOUR_DEVIATION_THRESHOLD,
+        "neighbour_agreement_threshold": config.NEIGHBOUR_AGREEMENT_THRESHOLD,
         "fault_detection_rate": metrics["detector"]["fault_detection_rate"],
         "fault_classification_rate": metrics["detector"]["fault_classification_rate"],
         "extreme_false_flag_rate": metrics["detector"]["extreme_false_flag_rate"],
