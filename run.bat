@@ -63,6 +63,14 @@ if not errorlevel 1 (
     set API_PORT=8010
 )
 
+echo Clearing any stale Next.js dev server for this directory...
+if exist "frontend\.next\dev\lock" (
+    for /f "tokens=2 delims=:" %%P in ('type "frontend\.next\dev\lock" 2^>nul ^| findstr /R "[0-9]"') do (
+        taskkill /PID %%P /F >nul 2>nul
+    )
+    del /q "frontend\.next\dev\lock" >nul 2>nul
+)
+
 echo Checking port %WEB_PORT% ...
 netstat -ano | findstr /R /C:"LISTENING" | findstr /C:":%WEB_PORT% " >nul
 if not errorlevel 1 (
