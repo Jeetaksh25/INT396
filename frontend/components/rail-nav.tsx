@@ -2,48 +2,90 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  SquaresFour,
+  Broadcast,
+  Pulse,
+  ChartLineUp,
+  TreeStructure,
+} from "@phosphor-icons/react";
 
-const links = [
-  { href: "/", label: "Network overview" },
-  { href: "/stations", label: "Stations" },
-  { href: "/events", label: "Detection events" },
-  { href: "/method", label: "Method & metrics" },
+const overviewLinks = [
+  { href: "/", label: "Overview", icon: SquaresFour },
+  { href: "/stations", label: "Stations", icon: Broadcast },
+  { href: "/events", label: "Events", icon: Pulse },
+];
+
+const analysisLinks = [
+  { href: "/method", label: "Method", icon: ChartLineUp },
+  { href: "/model", label: "Model card", icon: TreeStructure },
 ];
 
 export function RailNav() {
   const pathname = usePathname();
 
-  function isActive(href: string) {
-    if (href === "/") {
-      return pathname === "/";
-    }
-    return pathname.startsWith(href);
-  }
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
     <aside className="rail">
-      <div className="brand">
-        <span className="brand-mark">INT-396</span>
-        <span className="brand-name">Station Integrity</span>
-      </div>
+      <Link href="/" className="brand" aria-label="Station Integrity home">
+        <span className="brand-mark" aria-hidden="true">
+          SI
+        </span>
+        <span className="brand-text">
+          <span className="brand-name">Station Integrity</span>
+          <span className="brand-sub">INT-396 · Unsupervised</span>
+        </span>
+      </Link>
 
-      <nav className="rail-nav" aria-label="Primary">
-        {links.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="rail-link"
-            data-active={isActive(link.href)}
-          >
-            <span className="rail-dot" aria-hidden="true" />
-            {link.label}
-          </Link>
-        ))}
+      <nav className="rail-group" aria-label="Overview">
+        <span className="rail-caption">Monitor</span>
+        {overviewLinks.map((link) => {
+          const Icon = link.icon;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="rail-link"
+              data-active={isActive(link.href)}
+              aria-current={isActive(link.href) ? "page" : undefined}
+            >
+              <Icon size={17} weight="regular" aria-hidden="true" />
+              {link.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <nav className="rail-group" aria-label="Analysis">
+        <span className="rail-caption">Analysis</span>
+        {analysisLinks.map((link) => {
+          const Icon = link.icon;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="rail-link"
+              data-active={isActive(link.href)}
+              aria-current={isActive(link.href) ? "page" : undefined}
+            >
+              <Icon size={17} weight="regular" aria-hidden="true" />
+              {link.label}
+            </Link>
+          );
+        })}
       </nav>
 
       <div className="rail-foot">
-        <span>Unsupervised · k-Means · DBSCAN · PCA · Isolation Forest · LOF</span>
-        <span>Open-Meteo ERA5 · 8 stations · 2023 hourly</span>
+        <span className="live-row">
+          <span className="pulse-dot" aria-hidden="true" />
+          Results cached · seed 42
+        </span>
+        <div className="rail-meta">
+          <span>8 stations · 280,320 readings</span>
+          <span>ERA5 / Open-Meteo · CC BY 4.0</span>
+        </div>
       </div>
     </aside>
   );

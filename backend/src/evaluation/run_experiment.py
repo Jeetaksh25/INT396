@@ -155,6 +155,11 @@ def save_outputs(pipeline_result, labels):
         "pca_score",
         "isolation_score",
         "lof_score",
+        "kmeans_vote",
+        "dbscan_vote",
+        "pca_vote",
+        "isolation_vote",
+        "lof_vote",
     ]
     detections_for_export = merged[output_columns].copy()
     detections_for_export["timestamp"] = detections_for_export["timestamp"].astype(str)

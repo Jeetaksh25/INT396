@@ -1,16 +1,16 @@
 import Link from "next/link";
-import { Suspense } from "react";
+import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import { getMetrics, getStations } from "@/lib/api";
 import { MetricsSummary, StationHealth } from "@/lib/types";
 import { StatusBadge } from "@/components/badges";
-import { TableSkeleton } from "@/components/skeletons";
+import { PageHead, Section } from "@/components/page-parts";
+import { TopBar } from "@/components/top-bar";
+import { BlurFade } from "@/components/ui/blur-fade";
 
-function statusRank(status: StationHealth["status"]) {
-  const order = { FAULT: 0, EXTREME_EVENT: 1, WATCH: 2, HEALTHY: 3 };
-  return order[status] ?? 4;
-}
+const statusRank = (status: StationHealth["status"]) =>
+  ({ FAULT: 0, EXTREME_EVENT: 1, WATCH: 2, HEALTHY: 3 })[status] ?? 4;
 
-async function StationTable() {
+export default async function StationsPage() {
   let stations: StationHealth[] = [];
   let metrics: MetricsSummary | null = null;
   let error: string | null = null;
@@ -23,98 +23,146 @@ async function StationTable() {
 
   if (error) {
     return (
-      <div className="error-panel" style={{ marginTop: "2rem" }}>
-        <h2 className="error-title">Station data unavailable</h2>
-        <p className="code-line">{error}</p>
-      </div>
+      <>
+        <TopBar />
+        <PageHead title="Stations" description="Station data could not be loaded." />
+        <div className="error-panel">
+          <h2 className="error-title">Station data unavailable</h2>
+          <p className="code-line">{error}</p>
+        </div>
+      </>
     );
   }
 
   const sorted = [...stations].sort(
-    (a, b) => statusRank(a.status) - statusRank(b.status) || a.station_id.localeCompare(b.station_id),
+    (a, b) =>
+      statusRank(a.status) - statusRank(b.status) || a.station_id.localeCompare(b.station_id),
   );
 
   return (
     <>
-      <header className="page-head">
-        <div>
-          <h1 className="page-title">Station integrity</h1>
-          <p className="page-sub">
-            Every site is judged on its trailing week: faults first, then genuine extremes, then
-            elevated anomaly density. Click a station for its hourly trace.
-          </p>
-        </div>
-        <div className="stamp">
-          <div>{stations.length} stations</div>
-          <div>{metrics ? `${metrics.label_counts.total_readings.toLocaleString()} readings` : "—"}</div>
-        </div>
-      </header>
+      <TopBar />
+      <PageHead
+        size="large"
+        title="Station integrity"
+        description="Every site is judged on its trailing week: faults first, then genuine extremes, then elevated anomaly density. Open a station for the hour-by-hour trace."
+        aside={
+          <>
+            <span>{stations.length} stations</span>
+            <span>{metrics ? metrics.label_counts.total_readings.toLocaleString() : "—"} readings</span>
+          </>
+        }
+      />
 
-      <section className="section">
-        <div className="panel-flush scroll-x">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Station</th>
-                <th>Status</th>
-                <th>Fault events</th>
-                <th>Extreme events</th>
-                <th>Anomalous share</th>
-                <th>Total events</th>
-                <th>Fault recall</th>
-                <th>Last reading</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((station) => {
-                const stationMetrics = metrics?.per_station[station.station_id];
-                return (
-                  <tr key={station.station_id}>
-                    <td>
-                      <Link href={`/stations/${station.station_id}`} className="row-link">
-                        <span className="mono">{station.station_id}</span>
-                        {station.station_name}
-                      </Link>
-                    </td>
-                    <td>
-                      <StatusBadge status={station.status} />
-                    </td>
-                    <td className="mono">{station.fault_events}</td>
-                    <td className="mono">{station.extreme_events}</td>
-                    <td className="mono">{station.anomalous_percent.toFixed(2)}%</td>
-                    <td className="mono">{station.total_events}</td>
-                    <td className="mono">
-                      {stationMetrics
-                        ? `${(stationMetrics.fault_detection_rate * 100).toFixed(1)}%`
-                        : "—"}
-                    </td>
-                    <td className="mono" style={{ color: "var(--ink-3)" }}>
-                      {new Date(station.last_reading_at).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                      })}
-                    </td>
+      <Section title="Fleet status" note="Sorted by severity, faults first.">
+        <BlurFade delay={0.02} duration={0.6} offset={16}>
+          <div className="card-flat">
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Station</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: "right" }}>Faults</th>
+                    <th style={{ textAlign: "right" }}>Extremes</th>
+                    <th style={{ textAlign: "right" }}>Anomalous</th>
+                    <th style={{ textAlign: "right" }}>Events</th>
+                    <th style={{ textAlign: "right" }}>Fault recall</th>
+                    <th>Last reading</th>
+                    <th aria-label="Open" />
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </>
-  );
-}
+                </thead>
+                <tbody>
+                  {sorted.map((station) => {
+                    const stationMetrics = metrics?.per_station[station.station_id];
+                    return (
+                      <tr key={station.station_id}>
+                        <td>
+                          <Link href={`/stations/${station.station_id}`} className="station-cell">
+                            <span className="station-id">{station.station_id}</span>
+                            <span className="station-name">
+                              <span className="cell-strong">{station.station_name}</span>
+                              <small>
+                                {station.latitude.toFixed(2)}, {station.longitude.toFixed(2)}
+                              </small>
+                            </span>
+                          </Link>
+                        </td>
+                        <td>
+                          <StatusBadge status={station.status} />
+                        </td>
+                        <td style={{ textAlign: "right" }} className="cell-strong">
+                          {station.fault_events}
+                        </td>
+                        <td style={{ textAlign: "right" }} className="cell-strong">
+                          {station.extreme_events}
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          {station.anomalous_percent.toFixed(2)}%
+                        </td>
+                        <td style={{ textAlign: "right" }}>{station.total_events}</td>
+                        <td style={{ textAlign: "right" }}>
+                          {stationMetrics
+                            ? `${(stationMetrics.fault_detection_rate * 100).toFixed(1)}%`
+                            : "—"}
+                        </td>
+                        <td className="cell-muted">
+                          {new Date(station.last_reading_at).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          <Link
+                            href={`/stations/${station.station_id}`}
+                            className="row-link"
+                            aria-label={`Open ${station.station_name}`}
+                          >
+                            <ArrowUpRight size={14} weight="bold" />
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </BlurFade>
+      </Section>
 
-export default function StationsPage() {
-  return (
-    <Suspense
-      fallback={
-        <section className="section">
-          <TableSkeleton rows={8} />
-        </section>
-      }
-    >
-      <StationTable />
-    </Suspense>
+      <Section title="How status is decided" note="A strict precedence order, not a score.">
+        <div className="cols-2">
+          {[
+            {
+              status: "FAULT" as const,
+              rule: "any fault-labelled event in the trailing window",
+            },
+            {
+              status: "EXTREME_EVENT" as const,
+              rule: "no faults, but a genuine extreme-labelled event",
+            },
+            {
+              status: "WATCH" as const,
+              rule: "no events, but anomalous share above 5%",
+            },
+            {
+              status: "HEALTHY" as const,
+              rule: "none of the above",
+            },
+          ].map((item, index) => (
+            <BlurFade key={item.status} delay={index * 0.05} duration={0.6} offset={12}>
+              <div className="card card-pad">
+                <StatusBadge status={item.status} />
+                <p style={{ marginTop: "0.6rem", fontSize: "0.875rem", color: "var(--ink-2)" }}>
+                  {item.rule}.
+                </p>
+              </div>
+            </BlurFade>
+          ))}
+        </div>
+      </Section>
+    </>
   );
 }

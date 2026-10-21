@@ -181,3 +181,90 @@ export interface EventsResponse {
   count: number;
   events: EventRecord[];
 }
+
+export interface ModelSpec {
+  key: string;
+  name: string;
+  unit: string;
+  family: string;
+  score: string;
+  why: string;
+  hyperparameters: Record<string, string | number | boolean>;
+  vote_rate: number;
+  precision: number;
+  recall: number;
+  f1: number;
+  fault_recall: number;
+  score_mean: number;
+  score_p99: number;
+}
+
+export interface ModelCard {
+  generated_at: string;
+  task: string;
+  supervision: {
+    training_labels_used: number;
+    label_source: string;
+    guard: string;
+  };
+  dataset: {
+    stations: string[];
+    sensors: string[];
+    rows: number;
+    start: string;
+    end: string;
+    source: string;
+    reference_rows: number;
+    reference_fraction: number;
+    fault_readings: number;
+    extreme_readings: number;
+    fault_coverage: number;
+    extreme_coverage: number;
+  };
+  consensus: {
+    vote_threshold: number;
+    vote_total: number;
+    reference_quantile: number;
+    agreement_counts: Record<string, number>;
+    agreement_share: Record<string, number>;
+    pca_components: number;
+    vote_thresholds: Record<string, number>;
+    reference_vote_rates: Record<string, number>;
+  };
+  features: {
+    columns: string[];
+    count: number;
+    scaling: string;
+  };
+  models: ModelSpec[];
+  detector: MetricBlock;
+  baseline_range_check: MetricBlock;
+  delta: {
+    fault_detection_rate: number;
+    extreme_false_flag_rate: number;
+    precision: number;
+    f1: number;
+  };
+  per_fault_type_recall: Record<string, number>;
+  baseline_per_fault_type_recall: Record<string, number>;
+  confusion: {
+    fault_flagged: number;
+    fault_total: number;
+    extreme_flagged: number;
+    extreme_total: number;
+    clean_flagged: number;
+    clean_total: number;
+  };
+  event_metrics: MetricsSummary["event_metrics"];
+  timing: Record<string, number>;
+  association_rules: {
+    rule_count: number;
+    min_support: number;
+    min_confidence: number;
+  };
+  runtime: {
+    detector_seconds: number | null;
+    discriminator_seconds: number | null;
+    features_seconds: number | null;
+  };
+}

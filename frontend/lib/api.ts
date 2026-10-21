@@ -1,6 +1,7 @@
 import {
   EventsResponse,
   MetricsSummary,
+  ModelCard,
   StationDetail,
   StationHealth,
   StationSeries,
@@ -40,4 +41,8 @@ export function getTimeline(days = 30): Promise<TimelineResponse> {
 export function getEvents(limit = 100, label?: string): Promise<EventsResponse> {
   const suffix = label ? `&label=${label}` : "";
   return request<EventsResponse>(`/api/events?limit=${limit}${suffix}`);
+}
+
+export function getModelCard(): Promise<ModelCard> {
+  return request<ModelCard>("/api/model");
 }

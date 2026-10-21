@@ -3,9 +3,13 @@
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
+  Cell,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -13,54 +17,84 @@ import {
 } from "recharts";
 import { TimelinePoint } from "@/lib/types";
 
-const axisStyle = {
+const ink = "var(--ink-3)";
+
+const axisTick = {
   fontSize: 11,
-  fontFamily: "var(--font-mono), monospace",
-  fill: "oklch(62% 0.01 250)",
+  fill: "oklch(54% 0.011 265)",
+  letterSpacing: 0,
 };
 
 const tooltipStyle = {
-  background: "oklch(17.5% 0.008 255)",
-  border: "1px solid oklch(31% 0.012 255)",
-  borderRadius: 4,
+  background: "var(--surface)",
+  border: "1px solid var(--hairline-strong)",
+  borderRadius: 10,
   fontSize: 12,
-  fontFamily: "var(--font-mono), monospace",
-  color: "oklch(94% 0.006 90)",
+  color: "var(--ink)",
+  boxShadow: "0 12px 32px -14px oklch(20% 0.01 265 / 0.22)",
+  padding: "8px 10px",
+  letterSpacing: "-0.01em",
 };
 
-function shortDate(value: string) {
-  const date = new Date(value);
-  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
-}
+const shortDate = (value: string) =>
+  new Date(value).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
 
 export function NetworkTimeline({ points }: { points: TimelinePoint[] }) {
   const data = points.map((point) => ({
-    ...point,
     label: shortDate(point.timestamp),
+    anomalies: point.anomalies,
+    faults: point.fault_flags,
+    extremes: point.extreme_flags,
   }));
 
   return (
-    <div className="chart-frame">
+    <div className="chart-frame-lg">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
+        <AreaChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -16 }}>
           <defs>
             <linearGradient id="anomalyFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="oklch(76% 0.145 68)" stopOpacity={0.32} />
-              <stop offset="100%" stopColor="oklch(76% 0.145 68)" stopOpacity={0.02} />
+              <stop offset="0%" stopColor="oklch(58% 0.19 268)" stopOpacity={0.16} />
+              <stop offset="100%" stopColor="oklch(58% 0.19 268)" stopOpacity={0.01} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="oklch(26% 0.01 255)" strokeDasharray="2 4" vertical={false} />
-          <XAxis dataKey="label" tick={axisStyle} tickLine={false} axisLine={false} minTickGap={40} />
-          <YAxis tick={axisStyle} tickLine={false} axisLine={false} width={44} />
-          <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: "oklch(78% 0.008 250)" }} />
+          <CartesianGrid stroke="var(--hairline)" strokeDasharray="3 3" vertical={false} />
+          <XAxis
+            dataKey="label"
+            tick={axisTick}
+            tickLine={false}
+            axisLine={false}
+            minTickGap={46}
+            dy={6}
+          />
+          <YAxis tick={axisTick} tickLine={false} axisLine={false} width={44} />
+          <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: "var(--hairline-strong)" }} />
           <Area
             type="monotone"
             dataKey="anomalies"
-            name="flagged readings"
-            stroke="oklch(76% 0.145 68)"
-            strokeWidth={1.5}
+            name="All flags"
+            stroke="oklch(58% 0.19 268)"
+            strokeWidth={1.6}
             fill="url(#anomalyFill)"
             dot={false}
+            activeDot={{ r: 3.5, strokeWidth: 0 }}
+          />
+          <Line
+            type="monotone"
+            dataKey="faults"
+            name="Fault verdict"
+            stroke="oklch(58% 0.20 25)"
+            strokeWidth={1.3}
+            dot={false}
+            strokeDasharray="4 3"
+          />
+          <Line
+            type="monotone"
+            dataKey="extremes"
+            name="Extreme verdict"
+            stroke="oklch(56% 0.15 248)"
+            strokeWidth={1.3}
+            dot={false}
+            strokeDasharray="4 3"
           />
         </AreaChart>
       </ResponsiveContainer>
@@ -73,11 +107,13 @@ export function SensorLineChart({
   values,
   anomalies,
   baselineFlags,
+  unit,
 }: {
   timestamps: string[];
   values: (number | null)[];
   anomalies: number[];
   baselineFlags: number[];
+  unit?: string;
 }) {
   const data = timestamps.map((timestamp, index) => ({
     label: shortDate(timestamp),
@@ -87,40 +123,219 @@ export function SensorLineChart({
   }));
 
   return (
-    <div className="chart-frame">
+    <div className="chart-frame-lg">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
-          <CartesianGrid stroke="oklch(26% 0.01 255)" strokeDasharray="2 4" vertical={false} />
-          <XAxis dataKey="label" tick={axisStyle} tickLine={false} axisLine={false} minTickGap={50} />
-          <YAxis tick={axisStyle} tickLine={false} axisLine={false} width={48} domain={["auto", "auto"]} />
-          <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: "oklch(78% 0.008 250)" }} />
+        <LineChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -14 }}>
+          <CartesianGrid stroke="var(--hairline)" strokeDasharray="3 3" vertical={false} />
+          <XAxis
+            dataKey="label"
+            tick={axisTick}
+            tickLine={false}
+            axisLine={false}
+            minTickGap={54}
+            dy={6}
+          />
+          <YAxis
+            tick={axisTick}
+            tickLine={false}
+            axisLine={false}
+            width={52}
+            domain={["auto", "auto"]}
+            label={
+              unit
+                ? {
+                    value: unit,
+                    angle: -90,
+                    position: "insideLeft",
+                    offset: 18,
+                    style: { fontSize: 10, fill: ink },
+                  }
+                : undefined
+            }
+          />
+          <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: "var(--hairline-strong)" }} />
           <Line
             type="monotone"
             dataKey="value"
-            name="reading"
-            stroke="oklch(72% 0.05 250)"
-            strokeWidth={1}
+            name="Reading"
+            stroke="oklch(48% 0.02 265)"
+            strokeWidth={1.1}
             dot={false}
           />
           <Line
             type="monotone"
             dataKey="anomaly"
-            name="flagged"
-            stroke="oklch(68% 0.19 22)"
+            name="Consensus flag"
+            stroke="transparent"
             strokeWidth={0}
-            dot={{ r: 2.5, fill: "oklch(68% 0.19 22)", strokeWidth: 0 }}
+            dot={{ r: 2.4, fill: "oklch(58% 0.20 25)", strokeWidth: 0 }}
             connectNulls={false}
+            activeDot={false}
           />
           <Line
             type="monotone"
             dataKey="baseline"
-            name="range-check"
-            stroke="oklch(84% 0.14 92)"
+            name="Range check"
+            stroke="transparent"
             strokeWidth={0}
-            dot={{ r: 2, fill: "oklch(84% 0.14 92)", strokeWidth: 0 }}
+            dot={{ r: 1.8, fill: "oklch(64% 0.14 78)", strokeWidth: 0 }}
             connectNulls={false}
+            activeDot={false}
           />
         </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function VoteDistribution({
+  agreementShare,
+  threshold,
+}: {
+  agreementShare: Record<string, number>;
+  threshold: number;
+}) {
+  const data = Object.entries(agreementShare).map(([votes, share]) => ({
+    votes,
+    percent: Number((share * 100).toFixed(3)),
+    flagged: Number(votes) >= threshold,
+  }));
+
+  return (
+    <div className="chart-frame-sm">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -22 }}>
+          <CartesianGrid stroke="var(--hairline)" strokeDasharray="3 3" vertical={false} />
+          <XAxis
+            dataKey="votes"
+            tick={axisTick}
+            tickLine={false}
+            axisLine={false}
+            dy={6}
+            label={{
+              value: "votes of 5",
+              position: "insideBottomRight",
+              offset: -2,
+              style: { fontSize: 10, fill: ink },
+            }}
+          />
+          <YAxis tick={axisTick} tickLine={false} axisLine={false} width={46} unit="%" />
+          <Tooltip
+            contentStyle={tooltipStyle}
+            cursor={{ fill: "var(--surface-sunken)" }}
+          />
+          <ReferenceLine x={String(threshold)} stroke="var(--accent)" strokeDasharray="4 3" />
+          <Bar dataKey="percent" radius={[6, 6, 0, 0]} maxBarSize={54}>
+            {data.map((entry) => (
+              <Cell
+                key={entry.votes}
+                fill={entry.flagged ? "oklch(58% 0.19 268)" : "oklch(86% 0.007 265)"}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function RecallBars({
+  detector,
+  baseline,
+}: {
+  detector: Record<string, number>;
+  baseline: Record<string, number>;
+}) {
+  const faultTypes = Object.keys(detector);
+  const data = faultTypes.map((name) => ({
+    name,
+    detector: Number((detector[name] * 100).toFixed(1)),
+    baseline: Number(((baseline[name] ?? 0) * 100).toFixed(1)),
+  }));
+
+  return (
+    <div className="chart-frame">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -20 }} barGap={3}>
+          <CartesianGrid stroke="var(--hairline)" strokeDasharray="3 3" vertical={false} />
+          <XAxis
+            dataKey="name"
+            tick={axisTick}
+            tickLine={false}
+            axisLine={false}
+            dy={6}
+            interval={0}
+          />
+          <YAxis tick={axisTick} tickLine={false} axisLine={false} width={44} unit="%" />
+          <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "var(--surface-sunken)" }} />
+          <Bar
+            dataKey="detector"
+            name="Consensus"
+            fill="oklch(58% 0.19 268)"
+            radius={[5, 5, 0, 0]}
+            maxBarSize={26}
+          />
+          <Bar
+            dataKey="baseline"
+            name="Range check"
+            fill="oklch(86% 0.007 265)"
+            radius={[5, 5, 0, 0]}
+            maxBarSize={26}
+          />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function FlagRateBars({
+  confusion,
+}: {
+  confusion: {
+    fault_flagged: number;
+    fault_total: number;
+    extreme_flagged: number;
+    extreme_total: number;
+    clean_flagged: number;
+    clean_total: number;
+  };
+}) {
+  const data = [
+    {
+      name: "Fault",
+      rate: Number(((confusion.fault_flagged / Math.max(confusion.fault_total, 1)) * 100).toFixed(2)),
+      fill: "oklch(58% 0.20 25)",
+    },
+    {
+      name: "Extreme",
+      rate: Number(
+        ((confusion.extreme_flagged / Math.max(confusion.extreme_total, 1)) * 100).toFixed(2),
+      ),
+      fill: "oklch(56% 0.15 248)",
+    },
+    {
+      name: "Clean",
+      rate: Number(
+        ((confusion.clean_flagged / Math.max(confusion.clean_total, 1)) * 100).toFixed(2),
+      ),
+      fill: "oklch(70% 0.008 265)",
+    },
+  ];
+
+  return (
+    <div className="chart-frame-sm">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -22 }}>
+          <CartesianGrid stroke="var(--hairline)" strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="name" tick={axisTick} tickLine={false} axisLine={false} dy={6} />
+          <YAxis tick={axisTick} tickLine={false} axisLine={false} width={46} unit="%" />
+          <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "var(--surface-sunken)" }} />
+          <Bar dataKey="rate" radius={[6, 6, 0, 0]} maxBarSize={64}>
+            {data.map((entry) => (
+              <Cell key={entry.name} fill={entry.fill} />
+            ))}
+          </Bar>
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );

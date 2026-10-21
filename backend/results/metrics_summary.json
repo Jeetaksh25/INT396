@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T19:35:09.019449+00:00",
+  "generated_at": "2026-10-21T19:52:57.747228+00:00",
   "random_seed": 42,
   "dataset": {
     "stations": [
@@ -173,10 +173,10 @@
     "total_rows": 280320
   },
   "timing": {
-    "rules_seconds": 0.55,
-    "features_seconds": 1.31,
-    "detector_seconds": 92.97,
-    "discriminator_seconds": 1.76
+    "rules_seconds": 0.34,
+    "features_seconds": 0.66,
+    "detector_seconds": 98.81,
+    "discriminator_seconds": 2.37
   },
   "rule_count": 14,
   "feature_columns": [

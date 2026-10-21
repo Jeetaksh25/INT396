@@ -259,6 +259,11 @@ def events(
     }
 
 
+@app.get("/api/model")
+def model_card():
+    return read_json(config.RESULTS_DIR / "model_card.json")
+
+
 @app.get("/api/rules")
 def weather_rules():
     path = config.RESULTS_DIR / "association_rules.json"

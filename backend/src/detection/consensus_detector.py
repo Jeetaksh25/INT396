@@ -59,7 +59,10 @@ def fit_lof_score(reference_matrix, full_matrix):
 def threshold_from_reference(scores, reference_mask, quantile=config.REFERENCE_QUANTILE):
     reference_scores = scores[reference_mask]
     if len(reference_scores) == 0:
-        return float(np.quantile(scores, quantile))
+        reference_scores = scores
+    unique_values = np.unique(reference_scores)
+    if len(unique_values) <= 2 and set(unique_values.tolist()).issubset({0.0, 1.0}):
+        return 0.5
     return float(np.quantile(reference_scores, quantile))
 
 

@@ -1,19 +1,23 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { RailNav } from "@/components/rail-nav";
+import { MotionProvider } from "@/components/motion";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const bodyFont = Geist({
   subsets: ["latin"],
   variable: "--font-body",
   display: "swap",
+  fallback: ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
 });
 
-const displayFont = Instrument_Serif({
+const displayFont = Geist({
   subsets: ["latin"],
-  weight: "400",
   variable: "--font-display",
   display: "swap",
+  weight: ["400", "500", "600"],
+  fallback: ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
 });
 
 const monoFont = Geist_Mono({
@@ -23,9 +27,12 @@ const monoFont = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Network Health · Sensor Fault Discovery",
+  title: {
+    default: "Station Integrity · Sensor Fault Discovery",
+    template: "%s · Station Integrity",
+  },
   description:
-    "Unsupervised detection of failing weather-station sensors and separation from genuine extreme events.",
+    "Unsupervised detection of failing weather-station sensors, separated from genuine extreme events. Eight ERA5 stations, five detectors, one consensus.",
 };
 
 export default function RootLayout({
@@ -34,10 +41,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${bodyFont.variable} ${displayFont.variable} ${monoFont.variable}`}>
-        <div className="shell">
-          <RailNav />
-          <main className="main">{children}</main>
-        </div>
+        <MotionProvider>
+          <TooltipProvider delayDuration={220}>
+            <div className="grain" aria-hidden="true" />
+            <div className="shell">
+              <RailNav />
+              <main className="main">
+                <div className="content">{children}</div>
+              </main>
+            </div>
+          </TooltipProvider>
+        </MotionProvider>
       </body>
     </html>
   );

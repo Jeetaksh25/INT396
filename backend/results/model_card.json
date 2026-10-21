@@ -1,0 +1,283 @@
+{
+  "generated_at": "2026-10-21T19:52:57.747228+00:00",
+  "task": "Unsupervised sensor fault discovery with fault-versus-extreme separation",
+  "supervision": {
+    "training_labels_used": 0,
+    "label_source": "synthetic injection, evaluation only",
+    "guard": "src/features/leakage_guard.py rejects label columns in the model path"
+  },
+  "dataset": {
+    "stations": [
+      "DEL",
+      "BOM",
+      "MAA",
+      "HYD",
+      "JAI",
+      "CCU",
+      "BLR",
+      "SLM"
+    ],
+    "sensors": [
+      "temperature",
+      "humidity",
+      "wind_speed",
+      "pressure"
+    ],
+    "rows": 280320,
+    "start": "2023-01-01 00:00:00",
+    "end": "2023-12-31 23:00:00",
+    "source": "Open-Meteo Historical Weather API (ERA5)",
+    "reference_rows": 84096,
+    "reference_fraction": 0.3,
+    "fault_readings": 4966,
+    "extreme_readings": 12060,
+    "fault_coverage": 0.017715,
+    "extreme_coverage": 0.043022
+  },
+  "consensus": {
+    "vote_threshold": 2,
+    "vote_total": 5,
+    "reference_quantile": 0.99,
+    "agreement_counts": {
+      "0": 263571,
+      "1": 13061,
+      "2": 2787,
+      "3": 679,
+      "4": 222
+    },
+    "agreement_share": {
+      "0": 0.94025,
+      "1": 0.046593,
+      "2": 0.009942,
+      "3": 0.002422,
+      "4": 0.000792
+    },
+    "pca_components": 9,
+    "vote_thresholds": {
+      "kmeans_score": 8.082354622132558,
+      "dbscan_score": 1.0,
+      "pca_score": 7.992652298584285,
+      "isolation_score": 0.5630675640820728,
+      "lof_score": 1.7923003675576588
+    },
+    "reference_vote_rates": {
+      "kmeans_vote": 0.010000475646879756,
+      "dbscan_vote": 0.0,
+      "pca_vote": 0.010000475646879756,
+      "isolation_vote": 0.010000475646879756,
+      "lof_vote": 0.010000475646879756
+    }
+  },
+  "features": {
+    "columns": [
+      "value_standardized",
+      "deviation_from_median_24h",
+      "rate_of_change",
+      "rolling_mean_24h",
+      "rolling_std_24h",
+      "flatline_score",
+      "hour_of_day_sin",
+      "hour_of_day_cos",
+      "rule_violation_count",
+      "physics_violation_count",
+      "missing_reading"
+    ],
+    "count": 11,
+    "scaling": "per-station standardisation fitted on the reference period"
+  },
+  "models": [
+    {
+      "key": "kmeans",
+      "name": "k-Means",
+      "unit": "Unit II",
+      "family": "Partition clustering",
+      "score": "Euclidean distance to assigned centroid",
+      "why": "Groups reference-period weather regimes; a reading far from its own regime is suspicious.",
+      "hyperparameters": {
+        "n_clusters": 6,
+        "init": "kmeans++",
+        "max_iter": 300,
+        "tolerance": 0.0001,
+        "random_seed": 42
+      },
+      "vote_rate": 0.0118,
+      "precision": 0.4515,
+      "recall": 0.0887,
+      "f1": 0.1483,
+      "fault_recall": 0.2735,
+      "score_mean": 2.2188,
+      "score_p99": 9.156
+    },
+    {
+      "key": "dbscan",
+      "name": "DBSCAN",
+      "unit": "Unit III",
+      "family": "Density clustering",
+      "score": "1 when the point is noise, otherwise 0",
+      "why": "Noise is the definition of an outlier here, so faults need no cluster membership.",
+      "hyperparameters": {
+        "eps": 1.4,
+        "min_samples": 12,
+        "max_fit_samples": 4000,
+        "max_core_samples": 2500,
+        "distance": "euclidean"
+      },
+      "vote_rate": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "fault_recall": 0.0,
+      "score_mean": 0.0594,
+      "score_p99": 1.0
+    },
+    {
+      "key": "pca",
+      "name": "PCA reconstruction",
+      "unit": "Unit IV",
+      "family": "Linear reconstruction",
+      "score": "Squared reconstruction error at 90% variance",
+      "why": "Extremes run along real variance directions; faults break the correlation structure.",
+      "hyperparameters": {
+        "variance_target": 0.9,
+        "solver": "numpy.linalg.eigh on the covariance matrix",
+        "centering": "reference-period mean"
+      },
+      "vote_rate": 0.0127,
+      "precision": 0.2552,
+      "recall": 0.0539,
+      "f1": 0.089,
+      "fault_recall": 0.1244,
+      "score_mean": 1.2314,
+      "score_p99": 9.0834
+    },
+    {
+      "key": "isolation",
+      "name": "Isolation Forest",
+      "unit": "Unit V",
+      "family": "Tree ensemble",
+      "score": "2^(-E[h(x)] / c(n)), higher means more isolated",
+      "why": "Random splits isolate rare readings in few steps, independent of density assumptions.",
+      "hyperparameters": {
+        "n_trees": 100,
+        "sub_sample_size": 256,
+        "random_seed": 42
+      },
+      "vote_rate": 0.0109,
+      "precision": 0.6867,
+      "recall": 0.1238,
+      "f1": 0.2097,
+      "fault_recall": 0.4092,
+      "score_mean": 0.4497,
+      "score_p99": 0.567
+    },
+    {
+      "key": "lof",
+      "name": "Local Outlier Factor",
+      "unit": "Unit V",
+      "family": "Local density",
+      "score": "LOF score against the reference neighbourhood",
+      "why": "Catches readings that are sparse relative to their own neighbourhood, not globally.",
+      "hyperparameters": {
+        "n_neighbors": 20,
+        "max_reference_samples": 12000,
+        "novelty_mode": true
+      },
+      "vote_rate": 0.0415,
+      "precision": 0.2262,
+      "recall": 0.1556,
+      "f1": 0.1844,
+      "fault_recall": 0.3506,
+      "score_mean": 1.21,
+      "score_p99": 2.5485
+    }
+  ],
+  "detector": {
+    "fault_detection_rate": 0.3933,
+    "fault_classification_rate": 0.2741,
+    "extreme_false_flag_rate": 0.0085,
+    "precision_at_k": {
+      "10": 1.0,
+      "25": 1.0,
+      "50": 0.96
+    },
+    "precision": 0.5296,
+    "recall": 0.3933,
+    "f1": 0.4514,
+    "false_positive_rate_clean": 0.0056
+  },
+  "baseline_range_check": {
+    "fault_detection_rate": 0.2811,
+    "fault_classification_rate": 0.2811,
+    "extreme_false_flag_rate": 0.0037,
+    "precision_at_k": {
+      "10": 1.0,
+      "25": 1.0,
+      "50": 1.0
+    },
+    "precision": 1.0,
+    "recall": 0.2811,
+    "f1": 0.4389,
+    "false_positive_rate_clean": 0.0
+  },
+  "delta": {
+    "fault_detection_rate": 0.1122,
+    "extreme_false_flag_rate": -0.0048,
+    "precision": -0.4704,
+    "f1": 0.0125
+  },
+  "per_fault_type_recall": {
+    "bias": 0.5119,
+    "drift": 0.1137,
+    "stuck": 0.8057,
+    "spike": 0.6253,
+    "precision": 0.0414,
+    "dropout": 1.0
+  },
+  "baseline_per_fault_type_recall": {
+    "bias": 0.1398,
+    "drift": 0.0608,
+    "stuck": 0.0,
+    "spike": 0.5566,
+    "precision": 0.0778,
+    "dropout": 1.0
+  },
+  "confusion": {
+    "fault_flagged": 1953,
+    "fault_total": 4966,
+    "extreme_flagged": 303,
+    "extreme_total": 12060,
+    "clean_flagged": 1485,
+    "clean_total": 263426
+  },
+  "event_metrics": {
+    "event_count": 1203,
+    "fault_events": 1109,
+    "extreme_events": 29,
+    "clean_events": 65,
+    "fault_event_precision": 0.9982,
+    "extreme_event_precision": 0.0345,
+    "reason_code_counts": {
+      "physics_inconsistent": 795,
+      "isolated_sensor": 390,
+      "isolated_or_erratic": 11,
+      "coherent_multi_sensor": 6,
+      "coherent_regional": 1
+    }
+  },
+  "timing": {
+    "rules_seconds": 0.34,
+    "features_seconds": 0.66,
+    "detector_seconds": 98.81,
+    "discriminator_seconds": 2.37
+  },
+  "association_rules": {
+    "rule_count": 14,
+    "min_support": 0.12,
+    "min_confidence": 0.55
+  },
+  "runtime": {
+    "detector_seconds": 98.81,
+    "discriminator_seconds": 2.37,
+    "features_seconds": 0.66
+  }
+}
