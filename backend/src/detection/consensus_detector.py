@@ -5,6 +5,7 @@ from src.algorithms.anomaly_detectors import IsolationForestCustom, LocalOutlier
 from src.algorithms.dbscan import DBSCANCustom
 from src.algorithms.kmeans import KMeansCustom
 from src.algorithms.pca import PCACustom
+from src.features.feature_builder import rolling_mean, rolling_std
 
 
 def fit_kmeans_score(reference_matrix, full_matrix):
@@ -89,7 +90,13 @@ def compute_consensus(features, matrix, reference_mask):
     anomaly_score = vote_count / config.CONSENSUS_VOTE_TOTAL
     is_anomaly = (vote_count >= config.CONSENSUS_VOTE_THRESHOLD).astype(int)
 
+    values = features["measured_value"].astype(float)
+    local_mean = rolling_mean(values)
+    local_std = rolling_std(values).replace(0.0, np.nan).fillna(1.0)
+    sensor_deviation = (values - local_mean) / local_std
+
     result = features[["station_id", "sensor_name", "timestamp", "measured_value"]].copy()
+    result["sensor_deviation"] = sensor_deviation.fillna(0.0)
     for score_name, scores in score_columns.items():
         result[score_name] = scores
     for vote_name, vote in vote_columns.items():

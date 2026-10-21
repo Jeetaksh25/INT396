@@ -87,21 +87,6 @@ def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
             for sensor_name in config.SENSORS
         }
 
-        neighbour_by_sensor = {
-            sensor_name: build_neighbour_deviation(
-                station_id, sensor_name, station_frames, station_stats, timestamp_index
-            )
-            for sensor_name in config.SENSORS
-        }
-
-        cross_sensor_by_sensor = {}
-        for sensor_name in config.SENSORS:
-            other_names = [name for name in config.SENSORS if name != sensor_name]
-            combined = pd.concat(
-                [standardized_by_sensor[name].abs() for name in other_names], axis=1
-            )
-            cross_sensor_by_sensor[sensor_name] = combined.mean(axis=1)
-
         hour_values = timestamp_index.hour.to_numpy()
         hour_angle = 2.0 * np.pi * hour_values / 24.0
         hour_sin = pd.Series(np.sin(hour_angle), index=timestamp_index)
@@ -124,8 +109,6 @@ def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
                     "rolling_std_24h": rolling_std(values),
                     "hour_of_day_sin": hour_sin,
                     "hour_of_day_cos": hour_cos,
-                    "cross_sensor_deviation_score": cross_sensor_by_sensor[sensor_name],
-                    "neighbour_deviation_score": neighbour_by_sensor[sensor_name],
                     "rule_violation_count": association_violations.astype(float),
                     "physics_violation_count": violations.astype(float),
                     "missing_reading": values.isna().astype(float),

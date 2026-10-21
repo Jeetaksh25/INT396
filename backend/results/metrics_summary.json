@@ -1,0 +1,196 @@
+{
+  "generated_at": "2026-10-21T18:45:47.818628+00:00",
+  "random_seed": 42,
+  "dataset": {
+    "stations": [
+      "DEL",
+      "BOM",
+      "MAA",
+      "HYD",
+      "JAI",
+      "CCU",
+      "BLR",
+      "SLM"
+    ],
+    "sensors": [
+      "temperature",
+      "humidity",
+      "wind_speed",
+      "pressure"
+    ],
+    "rows": 280320,
+    "start": "2023-01-01 00:00:00",
+    "end": "2023-12-31 23:00:00",
+    "source": "Open-Meteo Historical Weather API (ERA5)"
+  },
+  "detector": {
+    "fault_detection_rate": 0.5613,
+    "fault_classification_rate": 0.5147,
+    "extreme_false_flag_rate": 0.1404,
+    "precision_at_k": {
+      "10": 0.0,
+      "25": 0.32,
+      "50": 0.54
+    },
+    "precision": 0.0855,
+    "recall": 0.5613,
+    "f1": 0.1484,
+    "false_positive_rate_clean": 0.1059
+  },
+  "baseline_range_check": {
+    "fault_detection_rate": 0.2768,
+    "fault_classification_rate": 0.2768,
+    "extreme_false_flag_rate": 0.0037,
+    "precision_at_k": {
+      "10": 1.0,
+      "25": 1.0,
+      "50": 1.0
+    },
+    "precision": 1.0,
+    "recall": 0.2768,
+    "f1": 0.4335,
+    "false_positive_rate_clean": 0.0
+  },
+  "delta": {
+    "fault_detection_rate": 0.2845,
+    "extreme_false_flag_rate": -0.1367,
+    "precision": -0.9145,
+    "f1": -0.2851
+  },
+  "per_fault_type_recall": {
+    "bias": 0.6412,
+    "drift": 0.2911,
+    "stuck": 0.0899,
+    "spike": 0.9599,
+    "precision": 0.1857,
+    "dropout": 0.0261
+  },
+  "baseline_per_fault_type_recall": {
+    "bias": 0.1398,
+    "drift": 0.0608,
+    "stuck": 0.0,
+    "spike": 0.5568,
+    "precision": 0.0778,
+    "dropout": 0.2696
+  },
+  "per_station": {
+    "DEL": {
+      "fault_detection_rate": 0.5405940594059406,
+      "false_positive_rate_clean": 0.1452146224970914,
+      "fault_readings": 505,
+      "extreme_readings": 1884
+    },
+    "BOM": {
+      "fault_detection_rate": 0.0,
+      "false_positive_rate_clean": 0.07084206848357792,
+      "fault_readings": 180,
+      "extreme_readings": 516
+    },
+    "MAA": {
+      "fault_detection_rate": 0.8560747663551402,
+      "false_positive_rate_clean": 0.11358635034516022,
+      "fault_readings": 535,
+      "extreme_readings": 1344
+    },
+    "HYD": {
+      "fault_detection_rate": 0.6396135265700483,
+      "false_positive_rate_clean": 0.18762848065782098,
+      "fault_readings": 1035,
+      "extreme_readings": 1932
+    },
+    "JAI": {
+      "fault_detection_rate": 0.634765625,
+      "false_positive_rate_clean": 0.09096996073895973,
+      "fault_readings": 512,
+      "extreme_readings": 1680
+    },
+    "CCU": {
+      "fault_detection_rate": 0.525674499564839,
+      "false_positive_rate_clean": 0.07531239446133063,
+      "fault_readings": 1149,
+      "extreme_readings": 1328
+    },
+    "BLR": {
+      "fault_detection_rate": 0.17901234567901234,
+      "false_positive_rate_clean": 0.053874857371943134,
+      "fault_readings": 324,
+      "extreme_readings": 2344
+    },
+    "SLM": {
+      "fault_detection_rate": 0.5609452736318408,
+      "false_positive_rate_clean": 0.11268369067694531,
+      "fault_readings": 804,
+      "extreme_readings": 1032
+    }
+  },
+  "label_counts": {
+    "total_readings": 280320,
+    "fault_readings": 5044,
+    "extreme_readings": 12060
+  },
+  "confusion": {
+    "fault_flagged": 2831,
+    "fault_total": 5044,
+    "extreme_flagged": 2455,
+    "extreme_total": 12060,
+    "clean_flagged": 27899,
+    "clean_total": 263348
+  },
+  "event_metrics": {
+    "event_count": 7706,
+    "fault_events": 1896,
+    "extreme_events": 368,
+    "clean_events": 5442,
+    "fault_event_precision": 0.9589,
+    "extreme_event_precision": 0.1549,
+    "reason_code_counts": {
+      "isolated_or_erratic": 4566,
+      "physics_inconsistent": 1892,
+      "regional_coherent": 760,
+      "isolated_sensor": 447,
+      "sustained_regime": 41
+    }
+  },
+  "diagnostics": {
+    "vote_thresholds": {
+      "kmeans_score": 3.7511677687131284,
+      "dbscan_score": 1.0,
+      "pca_score": 2.541973815024447,
+      "isolation_score": 0.5092042588115862,
+      "lof_score": -0.9765310743642882
+    },
+    "vote_rates_reference": {
+      "kmeans_vote": 0.050002378234398785,
+      "dbscan_vote": 0.0,
+      "pca_vote": 0.050002378234398785,
+      "isolation_vote": 0.050002378234398785,
+      "lof_vote": 0.050002378234398785
+    },
+    "pca_components": 10,
+    "dbscan_noise_percent": 22.57420091324201,
+    "lof_outlier_percent": 7.250642123287671,
+    "reference_rows": 84096,
+    "total_rows": 280320
+  },
+  "timing": {
+    "rules_seconds": 0.38,
+    "features_seconds": 0.76,
+    "detector_seconds": 100.55,
+    "discriminator_seconds": 912.66
+  },
+  "rule_count": 14,
+  "feature_columns": [
+    "value_standardized",
+    "deviation_from_median_24h",
+    "rate_of_change",
+    "rolling_mean_24h",
+    "rolling_std_24h",
+    "hour_of_day_sin",
+    "hour_of_day_cos",
+    "cross_sensor_deviation_score",
+    "neighbour_deviation_score",
+    "rule_violation_count",
+    "physics_violation_count",
+    "missing_reading"
+  ]
+}

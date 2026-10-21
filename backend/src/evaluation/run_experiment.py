@@ -15,16 +15,18 @@ from src.features.feature_builder import (
     build_training_matrix,
     reference_mask_for,
 )
-from src.features.leakage_guard import assert_no_labels
+from src.features.leakage_guard import assert_no_labels, strip_label_columns
 from src.features.rule_features import mine_weather_rules, rule_violations_for_wide
 
 
 def load_dataset():
-    dataset = pd.read_parquet(config.DATASET_PARQUET)
-    dataset["timestamp"] = pd.to_datetime(dataset["timestamp"])
+    raw_dataset = pd.read_parquet(config.DATASET_PARQUET)
+    raw_dataset["timestamp"] = pd.to_datetime(raw_dataset["timestamp"])
     clean_wide = pd.read_parquet(config.PROCESSED_DIR / "clean_wide.parquet")
     clean_wide["timestamp"] = pd.to_datetime(clean_wide["timestamp"])
     clean_wide = clean_wide.set_index(["station_id", "timestamp"]).sort_index()
+    dataset = strip_label_columns(raw_dataset)
+    assert_no_labels(dataset, "detector input")
     return dataset, clean_wide
 
 

@@ -57,6 +57,13 @@ PHYSICAL_LIMITS = {
     "pressure": (870.0, 1085.0),
 }
 
+BASELINE_LIMITS = {
+    "temperature": (-5.0, 45.0),
+    "humidity": (0.0, 100.0),
+    "wind_speed": (0.0, 120.0),
+    "pressure": (950.0, 1050.0),
+}
+
 FAULT_TYPES = ["bias", "drift", "stuck", "spike", "precision", "dropout"]
 EXTREME_TYPES = ["heat_wave", "cold_snap", "storm", "heavy_rain"]
 
@@ -74,8 +81,6 @@ FEATURE_COLUMNS = [
     "rolling_std_24h",
     "hour_of_day_sin",
     "hour_of_day_cos",
-    "cross_sensor_deviation_score",
-    "neighbour_deviation_score",
     "rule_violation_count",
     "physics_violation_count",
     "missing_reading",
@@ -83,7 +88,7 @@ FEATURE_COLUMNS = [
 
 CONSENSUS_VOTE_THRESHOLD = 2
 CONSENSUS_VOTE_TOTAL = 5
-REFERENCE_QUANTILE = 0.95
+REFERENCE_QUANTILE = 0.99
 
 KMEANS_CLUSTERS = 6
 DBSCAN_EPS = 1.4
