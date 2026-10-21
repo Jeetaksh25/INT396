@@ -74,7 +74,8 @@ echo [3/4] Starting API on http://127.0.0.1:%API_PORT% ...
 start "INT396 API" cmd /k "cd /d %~dp0backend && python -m uvicorn main:app --host 127.0.0.1 --port %API_PORT%"
 
 echo [4/4] Starting dashboard on http://localhost:%WEB_PORT% ...
-start "INT396 Dashboard" cmd /k "cd /d %~dp0frontend && set NEXT_PUBLIC_API_URL=http://127.0.0.1:%API_PORT% && npx next dev -p %WEB_PORT%"
+set "NEXT_PUBLIC_API_URL=http://127.0.0.1:%API_PORT%"
+start "INT396 Dashboard" cmd /k "cd /d %~dp0frontend && npx next dev --port %WEB_PORT%"
 
 echo Waiting for both servers...
 timeout /t 14 /nobreak >nul
