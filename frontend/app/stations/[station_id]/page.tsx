@@ -163,13 +163,35 @@ export default async function StationPage({
                     <div key={row.reason_code} className="meter">
                       <div className="meter-head">
                         <span className="meter-name">{row.reason_code.replace(/_/g, " ")}</span>
-                        <span className="meter-value">{row.count}</span>
+                        <span className="meter-value">
+                          <span className="meter-count">
+                            {(
+                              (row.count /
+                                Math.max(
+                                  detail.fault_breakdown.reduce(
+                                    (sum, item) => sum + item.count,
+                                    0,
+                                  ),
+                                  1,
+                                )) *
+                              100
+                            ).toFixed(0)}
+                            %
+                          </span>
+                          <span>{row.count}</span>
+                        </span>
                       </div>
                       <div className="meter-track">
                         <div
                           className="meter-fill"
                           style={{
-                            width: `${Math.min(100, (row.count / Math.max(...detail.fault_breakdown.map((item) => item.count))) * 100)}%`,
+                            width: `${Math.sqrt(
+                              row.count /
+                                Math.max(
+                                  ...detail.fault_breakdown.map((item) => item.count),
+                                  1,
+                                ),
+                            ) * 100}%`,
                             height: "100%",
                           }}
                         />

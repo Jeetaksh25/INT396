@@ -65,7 +65,7 @@ a usable signal. Total coverage: 12,060 readings (4.30%).
 
 ## Features
 
-Per `(station, sensor, timestamp)`, ten features — all computed from `measured_value` only:
+Per `(station, sensor, timestamp)`, eleven features — all computed from `measured_value` only:
 
 | Feature | Definition | Targets |
 |---|---|---|
@@ -74,6 +74,7 @@ Per `(station, sensor, timestamp)`, ten features — all computed from `measured
 | rate_of_change | xₜ − xₜ₋₁ | spike |
 | rolling_mean_24h | trailing mean | drift |
 | rolling_std_24h | trailing std | stuck (→0) |
+| flatline_score | 1 when a run of ~6 hours is unchanged to 2dp | stuck |
 | hour_of_day_sin, cos | cyclic encoding | removes diurnal normal variation |
 | rule_violation_count | strong association rules broken | physics plausibility |
 | physics_violation_count | dew point > temperature, humidity outside [0,100], pressure outside [870,1085] | impossible readings |
@@ -96,8 +97,11 @@ Five unsupervised models, each producing one score per reading:
 | LOF (20 neighbours) | −LOF | V |
 
 Each score is converted to a binary vote by comparing against its own **reference-period quantile**
-(0.99). Votes are summed; two or more votes out of five marks the reading anomalous
+(0.99). Votes are summed; three or more votes out of five marks the reading anomalous
 (`is_anomaly`). The soft score `vote_count / 5` drives precision@K ranking.
+
+The threshold was tuned on the reference period only. Two votes raised fault recall from 0.393 to
+0.600 but pushed F1 below the range-check baseline, so three is the operating point.
 
 The reference quantile is deliberately conservative: a threshold at the 95th percentile of the
 reference period flags 5% of healthy data by construction, which is what a naive per-model threshold

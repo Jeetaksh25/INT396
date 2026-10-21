@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, WarningCircle } from "@phosphor-icons/react/dist/ssr";
-import { getMetrics } from "@/lib/api";
-import { MetricsSummary } from "@/lib/types";
+import { getMetrics, getModelCard } from "@/lib/api";
+import { MetricsSummary, ModelCard } from "@/lib/types";
 import { PageHead, Section, StepList, Callout, KvList } from "@/components/page-parts";
 import { TopBar } from "@/components/top-bar";
 import { BlurFade } from "@/components/ui/blur-fade";
@@ -10,10 +10,11 @@ const percent = (value: number, digits = 1) => `${(value * 100).toFixed(digits)}
 
 export default async function MethodPage() {
   let metrics: MetricsSummary | null = null;
+  let card: ModelCard | null = null;
   let error: string | null = null;
 
   try {
-    metrics = await getMetrics();
+    [metrics, card] = await Promise.all([getMetrics(), getModelCard()]);
   } catch (caught) {
     error = caught instanceof Error ? caught.message : "unknown error";
   }
@@ -65,8 +66,9 @@ export default async function MethodPage() {
                   title: "Build features",
                   body: (
                     <>
-                      Ten features per reading, standardised per station on the first 30% of the
-                      timeline. <span className="cell-muted">clean_value</span> never enters.
+                      {card?.features.count ?? 11} features per reading, standardised per station
+                      on the first 30% of the timeline.{" "}
+                      <span className="cell-muted">clean_value</span> never enters.
                     </>
                   ),
                 },

@@ -412,7 +412,6 @@ export default async function ModelPage() {
                     <th style={{ textAlign: "right" }}>Consensus</th>
                     <th style={{ textAlign: "right" }}>Range check</th>
                     <th style={{ textAlign: "right" }}>Delta</th>
-                    <th>Better</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -489,26 +488,25 @@ export default async function ModelPage() {
                           : diff < 0
                             ? "detector"
                             : "baseline";
+                    const detWins = winner === "detector";
                     return (
                       <tr key={row.name}>
                         <td className="cell-strong">{row.name}</td>
-                        <td style={{ textAlign: "right" }}>{row.detector.toFixed(4)}</td>
-                        <td style={{ textAlign: "right" }} className="cell-muted">
+                        <td
+                          style={{ textAlign: "right" }}
+                          className={detWins ? "cell-strong" : undefined}
+                        >
+                          {row.detector.toFixed(4)}
+                        </td>
+                        <td
+                          style={{ textAlign: "right" }}
+                          className={detWins ? "cell-muted" : "cell-strong"}
+                        >
                           {row.baseline.toFixed(4)}
                         </td>
                         <td style={{ textAlign: "right" }} className="cell-muted">
                           {diff > 0 ? "+" : ""}
                           {diff.toFixed(4)}
-                        </td>
-                        <td>
-                          <span
-                            className="chip"
-                            data-tone={
-                              winner === "detector" ? "up" : winner === "tie" ? "neutral" : "down"
-                            }
-                          >
-                            {winner}
-                          </span>
                         </td>
                       </tr>
                     );

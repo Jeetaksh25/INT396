@@ -10,6 +10,9 @@ Double-click **`run.bat`** in the project root. It installs dependencies if miss
 pipeline if results are absent, starts the API and the dashboard in separate windows, and opens
 `http://localhost:3000`.
 
+The dashboard proxies its interactive range switch through its own `/api/timeline` route, so the
+client never talks cross-origin to the API.
+
 Manual equivalent:
 
 ```bash
@@ -36,8 +39,8 @@ npm run dev
 |---|---|---|
 | Acquire | `src/acquisition/` | 8 stations × 8,760 hours × 4 sensors |
 | Simulate | `src/simulation/` | 6 fault types, 4 extreme types, ground-truth labels |
-| Feature | `src/features/` | 10 features per reading, reference-period scaling |
-| Detect | `src/detection/consensus_detector.py` | 5 unsupervised models, 2-of-5 vote |
+| Feature | `src/features/` | 11 features per reading, reference-period scaling |
+| Detect | `src/detection/consensus_detector.py` | 5 unsupervised models, 3-of-5 vote |
 | Discriminate | `src/detection/extreme_discriminator.py` | FAULT vs EXTREME rule tree |
 | Evaluate | `src/evaluation/` | metrics JSON, detections CSV, figures |
 | Serve | `main.py` | FastAPI over the result files |
@@ -89,6 +92,7 @@ See `documentation/experiments.md` for the measured numbers and their interpreta
 cd backend
 python -m tests.test_algorithms
 python -m tests.test_metrics
+python -m tests.test_leakage_guard
 ```
 
 ## Troubleshooting

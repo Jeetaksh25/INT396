@@ -34,6 +34,7 @@ export default async function EventsPage() {
     }, {}),
   ).sort((a, b) => b[1] - a[1]);
   const maxReason = Math.max(...reasonCounts.map((entry) => entry[1]), 1);
+  const width = (count: number, peak: number) => Math.sqrt(count / peak) * 100;
 
   return (
     <>
@@ -125,20 +126,37 @@ export default async function EventsPage() {
               <BlurFade delay={0.02} duration={0.6} offset={16}>
                 <div className="card card-pad">
                   <div className="meter-list">
-                    {reasonCounts.map(([reason, count]) => (
-                      <div key={reason} className="meter">
-                        <div className="meter-head">
-                          <span className="meter-name">{reason.replace(/_/g, " ")}</span>
-                          <span className="meter-value">{count}</span>
+                    {reasonCounts.map(([reason, count]) => {
+                      const share = (count / Math.max(events.length, 1)) * 100;
+                      const tone =
+                        reason === "physics_inconsistent" || reason === "isolated_sensor"
+                          ? "fault"
+                          : reason === "coherent_multi_sensor" ||
+                              reason === "coherent_regional" ||
+                              reason === "sustained_regime"
+                            ? "extreme"
+                            : undefined;
+                      return (
+                        <div key={reason} className="meter">
+                          <div className="meter-head">
+                            <span className="meter-name">{reason.replace(/_/g, " ")}</span>
+                            <span className="meter-value">
+                              <span className="meter-count">
+                                {share < 0.1 && share > 0 ? "<0.1" : share.toFixed(1)}%
+                              </span>
+                              <span>{count}</span>
+                            </span>
+                          </div>
+                          <div className="meter-track">
+                            <div
+                              className="meter-fill"
+                              data-tone={tone}
+                              style={{ width: `${width(count, maxReason)}%`, height: "100%" }}
+                            />
+                          </div>
                         </div>
-                        <div className="meter-track">
-                          <div
-                            className="meter-fill"
-                            style={{ width: `${(count / maxReason) * 100}%`, height: "100%" }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </BlurFade>
