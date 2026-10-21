@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T20:03:25.124780+00:00",
+  "generated_at": "2026-10-21T22:34:45.908381+00:00",
   "random_seed": 42,
   "dataset": {
     "stations": [
@@ -24,18 +24,18 @@
     "source": "Open-Meteo Historical Weather API (ERA5)"
   },
   "detector": {
-    "fault_detection_rate": 0.3933,
-    "fault_classification_rate": 0.2741,
-    "extreme_false_flag_rate": 0.0085,
+    "fault_detection_rate": 0.5489,
+    "fault_classification_rate": 0.4899,
+    "extreme_false_flag_rate": 0.0209,
     "precision_at_k": {
       "10": 1.0,
-      "25": 0.96,
-      "50": 0.92
+      "25": 1.0,
+      "50": 1.0
     },
-    "precision": 0.5296,
-    "recall": 0.3933,
-    "f1": 0.4514,
-    "false_positive_rate_clean": 0.0056
+    "precision": 0.6543,
+    "recall": 0.5489,
+    "f1": 0.597,
+    "false_positive_rate_clean": 0.0043
   },
   "baseline_range_check": {
     "fault_detection_rate": 0.2811,
@@ -52,17 +52,17 @@
     "false_positive_rate_clean": 0.0
   },
   "delta": {
-    "fault_detection_rate": 0.1122,
-    "extreme_false_flag_rate": -0.0048,
-    "precision": -0.4704,
-    "f1": 0.0125
+    "fault_detection_rate": 0.2678,
+    "extreme_false_flag_rate": -0.0172,
+    "precision": -0.3457,
+    "f1": 0.1581
   },
   "per_fault_type_recall": {
-    "bias": 0.5119,
-    "drift": 0.1137,
+    "bias": 0.6491,
+    "drift": 0.1499,
     "stuck": 0.8057,
-    "spike": 0.6253,
-    "precision": 0.0414,
+    "spike": 0.9418,
+    "precision": 0.0514,
     "dropout": 1.0
   },
   "baseline_per_fault_type_recall": {
@@ -75,50 +75,50 @@
   },
   "per_station": {
     "DEL": {
-      "fault_detection_rate": 0.5148514851485149,
-      "false_positive_rate_clean": 0.011573081868838405,
+      "fault_detection_rate": 0.5405940594059406,
+      "false_positive_rate_clean": 0.00823587043046966,
       "fault_readings": 505,
       "extreme_readings": 1884
     },
     "BOM": {
       "fault_detection_rate": 0.1130952380952381,
-      "false_positive_rate_clean": 0.0009605309116311561,
+      "false_positive_rate_clean": 0.0004657119571544999,
       "fault_readings": 168,
       "extreme_readings": 516
     },
     "MAA": {
-      "fault_detection_rate": 0.7962616822429907,
-      "false_positive_rate_clean": 0.0071142193952913515,
+      "fault_detection_rate": 0.9457943925233645,
+      "false_positive_rate_clean": 0.006571609441413198,
       "fault_readings": 535,
       "extreme_readings": 1344
     },
     "HYD": {
-      "fault_detection_rate": 0.4013605442176871,
-      "false_positive_rate_clean": 0.017407822620827105,
+      "fault_detection_rate": 0.5024295432458697,
+      "false_positive_rate_clean": 0.012176133532635774,
       "fault_readings": 1029,
       "extreme_readings": 1932
     },
     "JAI": {
-      "fault_detection_rate": 0.3089430894308943,
-      "false_positive_rate_clean": 0.000334580405754783,
+      "fault_detection_rate": 0.6565040650406504,
+      "false_positive_rate_clean": 0.0006083280104632418,
       "fault_readings": 492,
       "extreme_readings": 1680
     },
     "CCU": {
-      "fault_detection_rate": 0.3824312333629104,
-      "false_positive_rate_clean": 0.0043567637222716536,
+      "fault_detection_rate": 0.5590062111801242,
+      "false_positive_rate_clean": 0.002853373423741294,
       "fault_readings": 1127,
       "extreme_readings": 1328
     },
     "BLR": {
-      "fault_detection_rate": 0.23202614379084968,
-      "false_positive_rate_clean": 0.0009246417013407304,
+      "fault_detection_rate": 0.28431372549019607,
+      "false_positive_rate_clean": 0.0015102481121898597,
       "fault_readings": 306,
       "extreme_readings": 2344
     },
     "SLM": {
-      "fault_detection_rate": 0.22512437810945274,
-      "false_positive_rate_clean": 0.002890869669959046,
+      "fault_detection_rate": 0.4614427860696517,
+      "false_positive_rate_clean": 0.0025897374126716455,
       "fault_readings": 804,
       "extreme_readings": 1032
     }
@@ -129,54 +129,54 @@
     "extreme_readings": 12060
   },
   "confusion": {
-    "fault_flagged": 1953,
+    "fault_flagged": 2726,
     "fault_total": 4966,
-    "extreme_flagged": 303,
+    "extreme_flagged": 365,
     "extreme_total": 12060,
-    "clean_flagged": 1485,
+    "clean_flagged": 1142,
     "clean_total": 263426
   },
   "event_metrics": {
-    "event_count": 1203,
-    "fault_events": 1109,
-    "extreme_events": 29,
-    "clean_events": 65,
-    "fault_event_precision": 0.9982,
-    "extreme_event_precision": 0.0345,
+    "event_count": 1873,
+    "fault_events": 1718,
+    "extreme_events": 44,
+    "clean_events": 111,
+    "fault_event_precision": 0.9919,
+    "extreme_event_precision": 0.2955,
     "reason_code_counts": {
-      "physics_inconsistent": 795,
-      "isolated_sensor": 390,
-      "isolated_or_erratic": 11,
-      "coherent_multi_sensor": 6,
-      "coherent_regional": 1
+      "physics_inconsistent": 1096,
+      "isolated_sensor": 711,
+      "coherent_regional": 26,
+      "coherent_multi_sensor": 20,
+      "isolated_or_erratic": 20
     }
   },
   "diagnostics": {
     "vote_thresholds": {
-      "kmeans_score": 8.082354622132558,
-      "dbscan_score": 0.5,
-      "pca_score": 7.992652298584285,
-      "isolation_score": 0.5630675640820728,
-      "lof_score": 1.7923003675576588
+      "kmeans_vote": 6.807571800443446,
+      "dbscan_vote": 0.5,
+      "pca_vote": 8.239651361901537,
+      "isolation_vote": 0.5587137541483489,
+      "lof_vote": 2.2773407348393535
     },
     "vote_rates_reference": {
       "kmeans_vote": 0.010000475646879756,
-      "dbscan_vote": 0.0448416095890411,
+      "dbscan_vote": 0.09388080289193303,
       "pca_vote": 0.010000475646879756,
       "isolation_vote": 0.010000475646879756,
       "lof_vote": 0.010000475646879756
     },
-    "pca_components": 9,
-    "dbscan_noise_percent": 5.939640410958904,
-    "lof_outlier_percent": 8.20562214611872,
+    "pca_components": 11,
+    "dbscan_noise_percent": 14.625784817351597,
+    "lof_outlier_percent": 1.3627283105022832,
     "reference_rows": 84096,
     "total_rows": 280320
   },
   "timing": {
-    "rules_seconds": 0.31,
-    "features_seconds": 0.57,
-    "detector_seconds": 104.96,
-    "discriminator_seconds": 2.39
+    "rules_seconds": 0.63,
+    "features_seconds": 1.63,
+    "detector_seconds": 129.87,
+    "discriminator_seconds": 4.82
   },
   "rule_count": 14,
   "feature_columns": [
@@ -190,6 +190,8 @@
     "hour_of_day_cos",
     "rule_violation_count",
     "physics_violation_count",
-    "missing_reading"
+    "missing_reading",
+    "long_baseline_z",
+    "trend_168h"
   ]
 }
