@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { getMetrics } from "@/lib/api";
 import { MetricBlock, MetricsSummary } from "@/lib/types";
+import { TableSkeleton } from "@/components/skeletons";
 
 function percent(value: number) {
   return `${(value * 100).toFixed(1)}%`;
@@ -81,7 +83,7 @@ function metricTable(metrics: MetricsSummary) {
   );
 }
 
-export default async function MethodPage() {
+async function MethodBody() {
   let metrics: MetricsSummary | null = null;
   let error: string | null = null;
 
@@ -228,5 +230,13 @@ export default async function MethodPage() {
         </ol>
       </section>
     </>
+  );
+}
+
+export default function MethodPage() {
+  return (
+    <Suspense fallback={<TableSkeleton rows={12} />}>
+      <MethodBody />
+    </Suspense>
   );
 }

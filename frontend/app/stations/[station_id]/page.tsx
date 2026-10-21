@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import Link from "next/link";
 import { getStationDetail, getStationSeries } from "@/lib/api";
 import { StationDetail, StationSeries } from "@/lib/types";
 import { StatusBadge, SensorName } from "@/components/badges";
 import { StationSeriesPanel } from "@/components/station-series";
+import { ChartSkeleton, TableSkeleton } from "@/components/skeletons";
 
 const stationNames: Record<string, string> = {
   DEL: "Delhi",
@@ -16,12 +18,16 @@ const stationNames: Record<string, string> = {
   SLM: "Shimla",
 };
 
-export default async function StationPage({
-  params,
-}: {
-  params: Promise<{ station_id: string }>;
-}) {
-  const { station_id } = await params;
+export const instant = false;
+
+export const STATION_IDS = ["DEL", "BOM", "MAA", "HYD", "JAI", "CCU", "BLR", "SLM"];
+
+export function generateStaticParams() {
+  return STATION_IDS.map((station_id) => ({ station_id }));
+}
+
+async function StationBody({ stationId }: { stationId: string }) {
+  const station_id = stationId;
 
   let detail: StationDetail;
   let series: StationSeries;
@@ -200,5 +206,25 @@ export default async function StationPage({
         </div>
       </section>
     </>
+  );
+}
+
+export default async function StationPage({
+  params,
+}: {
+  params: Promise<{ station_id: string }>;
+}) {
+  const { station_id } = await params;
+  return (
+    <Suspense
+      fallback={
+        <section className="section">
+          <ChartSkeleton />
+          <TableSkeleton rows={6} />
+        </section>
+      }
+    >
+      <StationBody stationId={station_id} />
+    </Suspense>
   );
 }

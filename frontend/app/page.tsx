@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { NetworkOverview } from "@/components/overview";
 import { EventTicker } from "@/components/event-ticker";
+import { ChartSkeleton, TableSkeleton } from "@/components/skeletons";
 
 export default function HomePage() {
   return (
@@ -16,13 +18,24 @@ export default function HomePage() {
         </div>
         <div className="stamp">
           <div>INT-396 · Unsupervised Learning</div>
-          <div>SEED 42 · 2023 hourly · CCS BY 4.0</div>
+          <div>SEED 42 · 2023 hourly · CC BY 4.0</div>
         </div>
       </header>
 
-      <NetworkOverview />
+      <Suspense
+        fallback={
+          <section className="section">
+            <ChartSkeleton />
+            <TableSkeleton rows={8} />
+          </section>
+        }
+      >
+        <NetworkOverview />
+      </Suspense>
 
-      <EventTicker />
+      <Suspense fallback={<TableSkeleton rows={4} />}>
+        <EventTicker />
+      </Suspense>
 
       <section className="section">
         <div className="section-head">

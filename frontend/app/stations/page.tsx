@@ -1,14 +1,16 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { getMetrics, getStations } from "@/lib/api";
 import { MetricsSummary, StationHealth } from "@/lib/types";
 import { StatusBadge } from "@/components/badges";
+import { TableSkeleton } from "@/components/skeletons";
 
 function statusRank(status: StationHealth["status"]) {
   const order = { FAULT: 0, EXTREME_EVENT: 1, WATCH: 2, HEALTHY: 3 };
   return order[status] ?? 4;
 }
 
-export default async function StationsPage() {
+async function StationTable() {
   let stations: StationHealth[] = [];
   let metrics: MetricsSummary | null = null;
   let error: string | null = null;
@@ -100,5 +102,19 @@ export default async function StationsPage() {
         </div>
       </section>
     </>
+  );
+}
+
+export default function StationsPage() {
+  return (
+    <Suspense
+      fallback={
+        <section className="section">
+          <TableSkeleton rows={8} />
+        </section>
+      }
+    >
+      <StationTable />
+    </Suspense>
   );
 }

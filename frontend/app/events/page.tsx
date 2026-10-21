@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { getEvents } from "@/lib/api";
 import { EventRecord } from "@/lib/types";
+import { TableSkeleton } from "@/components/skeletons";
 
 function groupByReason(events: EventRecord[]) {
   const counts: Record<string, number> = {};
@@ -10,7 +12,7 @@ function groupByReason(events: EventRecord[]) {
   return Object.entries(counts).sort((a, b) => b[1] - a[1]);
 }
 
-export default async function EventsPage() {
+async function EventBody() {
   let events: EventRecord[] = [];
   let error: string | null = null;
 
@@ -123,5 +125,13 @@ export default async function EventsPage() {
         </>
       )}
     </>
+  );
+}
+
+export default function EventsPage() {
+  return (
+    <Suspense fallback={<TableSkeleton rows={10} />}>
+      <EventBody />
+    </Suspense>
   );
 }
