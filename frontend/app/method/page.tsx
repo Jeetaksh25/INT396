@@ -1,8 +1,6 @@
 import { getMetrics } from "@/lib/api";
 import { MetricBlock, MetricsSummary } from "@/lib/types";
 
-export const dynamic = "force-dynamic";
-
 function percent(value: number) {
   return `${(value * 100).toFixed(1)}%`;
 }

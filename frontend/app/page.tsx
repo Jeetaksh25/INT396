@@ -2,8 +2,6 @@ import Link from "next/link";
 import { NetworkOverview } from "@/components/overview";
 import { EventTicker } from "@/components/event-ticker";
 
-export const dynamic = "force-dynamic";
-
 export default function HomePage() {
   return (
     <>

@@ -2,8 +2,6 @@ import Link from "next/link";
 import { getEvents } from "@/lib/api";
 import { EventRecord } from "@/lib/types";
 
-export const dynamic = "force-dynamic";
-
 function groupByReason(events: EventRecord[]) {
   const counts: Record<string, number> = {};
   for (const event of events) {

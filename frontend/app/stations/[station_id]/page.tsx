@@ -5,8 +5,6 @@ import { StationDetail, StationSeries } from "@/lib/types";
 import { StatusBadge, SensorName } from "@/components/badges";
 import { StationSeriesPanel } from "@/components/station-series";
 
-export const dynamic = "force-dynamic";
-
 const stationNames: Record<string, string> = {
   DEL: "Delhi",
   BOM: "Mumbai",

@@ -557,14 +557,16 @@ a {
 
 .detail-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
   gap: 0;
   border-top: 1px solid var(--rule);
+  min-width: 0;
 }
 
 .detail-cell {
   padding: var(--space-sm) var(--space-md) var(--space-sm) 0;
   border-bottom: 1px solid var(--rule);
+  min-width: 0;
 }
 
 .detail-key {
@@ -573,11 +575,15 @@ a {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--ink-3);
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 .detail-value {
   font-size: 1rem;
   margin-top: 0.15rem;
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 .scroll-x {

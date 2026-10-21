@@ -3,8 +3,6 @@ import { getMetrics, getStations } from "@/lib/api";
 import { MetricsSummary, StationHealth } from "@/lib/types";
 import { StatusBadge } from "@/components/badges";
 
-export const dynamic = "force-dynamic";
-
 function statusRank(status: StationHealth["status"]) {
   const order = { FAULT: 0, EXTREME_EVENT: 1, WATCH: 2, HEALTHY: 3 };
   return order[status] ?? 4;
