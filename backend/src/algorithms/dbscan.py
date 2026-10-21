@@ -4,11 +4,12 @@ from src.algorithms.distance_metrics import pairwise_distances
 
 
 class DBSCANCustom:
-    def __init__(self, eps=1.0, min_samples=5, distance="euclidean", max_fit_samples=6000):
+    def __init__(self, eps=1.0, min_samples=5, distance="euclidean", max_fit_samples=4000, max_core_samples=2500):
         self.eps = eps
         self.min_samples = min_samples
         self.distance = distance
         self.max_fit_samples = max_fit_samples
+        self.max_core_samples = max_core_samples
         self.core_samples_ = None
         self.core_labels_ = None
 
@@ -66,8 +67,14 @@ class DBSCANCustom:
 
         fit_labels = self._region_labels(fit_matrix)
         core_mask = fit_labels >= 0
-        self.core_samples_ = fit_matrix[core_mask]
-        self.core_labels_ = fit_labels[core_mask]
+        core_samples = fit_matrix[core_mask]
+        core_labels = fit_labels[core_mask]
+        if len(core_samples) > self.max_core_samples:
+            step = max(1, len(core_samples) // self.max_core_samples)
+            core_samples = core_samples[::step][: self.max_core_samples]
+            core_labels = core_labels[::step][: self.max_core_samples]
+        self.core_samples_ = core_samples
+        self.core_labels_ = core_labels
         self.labels_ = fit_labels
         return fit_labels
 
