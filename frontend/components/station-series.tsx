@@ -36,6 +36,7 @@ export function StationSeriesPanel({ series }: { series: StationSeries }) {
   const anomalies = sampled.map((entry) => activeSeries.is_anomaly[entry.index]);
   const baselineFlags = sampled.map((entry) => activeSeries.baseline_flag[entry.index]);
   const meta = sensorLabels[activeSensor] ?? { label: activeSensor, unit: "" };
+  const sensorEvents = series.events.filter((event) => event.sensor_name === activeSensor);
 
   return (
     <>
@@ -80,14 +81,19 @@ export function StationSeriesPanel({ series }: { series: StationSeries }) {
         </div>
       </BlurFade>
 
-      {series.events.length > 0 ? (
+      {sensorEvents.length > 0 ? (
         <BlurFade delay={0.06} duration={0.6} offset={16}>
           <div className="card-flat">
             <div className="card-head">
               <div>
-                <h3 className="card-title">Episodes in this window</h3>
-                <p className="card-caption">grouped consecutive flagged hours</p>
+                <h3 className="card-title">{meta.label} episodes</h3>
+                <p className="card-caption">
+                  consecutive flagged hours grouped into episodes · last {series.days} days
+                </p>
               </div>
+              <span className="chip" data-tone="neutral">
+                {sensorEvents.length} {sensorEvents.length === 1 ? "episode" : "episodes"}
+              </span>
             </div>
             <div className="table-wrap">
               <table className="table">
@@ -103,13 +109,13 @@ export function StationSeriesPanel({ series }: { series: StationSeries }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {series.events
+                  {sensorEvents
                     .slice(-12)
                     .reverse()
                     .map((event) => (
                       <tr key={event.event_id}>
                         <td className="cell-muted">{event.event_id}</td>
-                        <td>{event.sensor_name.replace("_", " ")}</td>
+                        <td>{sensorLabels[event.sensor_name]?.label ?? event.sensor_name.replace("_", " ")}</td>
                         <td>{event.start.slice(0, 16).replace("T", " ")}</td>
                         <td>{event.end.slice(0, 16).replace("T", " ")}</td>
                         <td>
