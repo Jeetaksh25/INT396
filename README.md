@@ -43,6 +43,8 @@ npm run dev
 | Serve | `main.py` | FastAPI over the result files |
 | Show | `frontend/` | Next.js dashboard |
 
+![Dashboard](documentation/assets/dashboard_overview.png)
+
 ## Unsupervised guarantee
 
 Ground-truth columns are written by the simulation and read **only** by the evaluation module.
