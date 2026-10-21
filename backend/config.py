@@ -73,6 +73,20 @@ EXTREME_EPISODES_PER_TYPE = 8
 MAX_INTERPOLATION_GAP_HOURS = 2
 REFERENCE_PERIOD_FRACTION = 0.30
 
+CLEAN_REFERENCE_QUANTILE = 0.90
+
+DEVELOPMENT_WINDOW_HOURS = 168
+
+DETECTOR_WEIGHTS = {
+    "isolation": 0.55,
+    "lof": 0.25,
+    "kmeans": 0.20,
+}
+
+ENSEMBLE_QUANTILE = 0.99
+
+VOTE_DETECTORS = ["isolation", "lof", "kmeans"]
+
 FEATURE_COLUMNS = [
     "value_standardized",
     "deviation_from_median_24h",

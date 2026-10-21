@@ -25,9 +25,9 @@ STREAM_TARGET = 96
 
 WINDOW_DAYS = 21
 
-FAULTS_PER_TYPE = 3
+FAULTS_PER_TYPE = 2
 
-EXTREMES_PER_TYPE = 2
+EXTREMES_PER_TYPE = 1
 
 TRAIN_FRACTION = 0.35
 
@@ -179,7 +179,13 @@ def inject_events(window, seed):
 def run_detection(features, measured, bank):
     matrix = scale_matrix(features, bank["statistics"])
     scores, labels, components = score_with_bank(bank["bank"], matrix)
-    detections = assemble_detections(features, scores, labels, bank["thresholds"])
+    detections = assemble_detections(
+        features,
+        scores,
+        labels,
+        bank["thresholds"],
+        ensemble_threshold=bank.get("ensemble_threshold"),
+    )
     detections["pca_components"] = components
 
     baseline = build_baseline_table(features)
@@ -259,21 +265,28 @@ def pick_stream(detections, labels, target=STREAM_TARGET):
     ]
     merged = merged.sort_values(["timestamp", "station_id", "sensor_name"]).reset_index(drop=True)
 
-    flagged = merged.index[merged["is_local_anomaly"] == 1].to_numpy()
-    quiet = merged.index[merged["is_local_anomaly"] == 0].to_numpy()
-    chosen = []
+    kinds = ("clean", "fault", "extreme")
+    share = {"clean": 0.60, "fault": 0.22, "extreme": 0.18}
+    pools = {kind: merged.index[merged["truth"] == kind].to_numpy() for kind in kinds}
 
-    flagged_budget = int(round(target * 0.72))
-    if len(flagged):
-        limit = min(len(flagged), flagged_budget)
+    chosen = []
+    for kind in kinds:
+        pool = pools[kind]
+        limit = min(len(pool), int(round(target * share[kind])))
+        if limit <= 0:
+            continue
         chosen.extend(
-            int(item) for item in flagged[np.linspace(0, len(flagged) - 1, limit).astype(int)]
+            int(item) for item in pool[np.linspace(0, len(pool) - 1, limit).astype(int)]
         )
-    if len(quiet):
-        limit = min(len(quiet), target - len(chosen))
-        chosen.extend(
-            int(item) for item in quiet[np.linspace(0, len(quiet) - 1, limit).astype(int)]
-        )
+
+    shortfall = target - len(chosen)
+    if shortfall > 0:
+        spare = merged.index[~merged.index.isin(chosen)].to_numpy()
+        if len(spare):
+            needed = min(shortfall, len(spare))
+            chosen.extend(
+                int(item) for item in spare[np.linspace(0, len(spare) - 1, needed).astype(int)]
+            )
 
     subset = merged.loc[sorted(chosen)]
 
@@ -316,9 +329,58 @@ def build_summary(detections, labels, records, episodes, seed, window, diagnosti
 
     correct = sum(1 for record in records if record["correct"])
 
+    merged["truth_label"] = np.where(
+        merged["is_fault_injected"] == 1,
+        "fault",
+        np.where(merged["is_extreme_event"] == 1, "extreme", "clean"),
+    )
+    merged["decision_label"] = "HEALTHY"
+    merged.loc[merged["event_label"] == "FAULT", "decision_label"] = "FAULT"
+    merged.loc[merged["event_label"] == "EXTREME", "decision_label"] = "EXTREME"
+    merged["decision_matches"] = merged["decision_label"] == np.where(
+        merged["truth_label"] == "fault",
+        "FAULT",
+        np.where(merged["truth_label"] == "extreme", "EXTREME", "HEALTHY"),
+    )
+
+    per_class = {}
+    for truth_key, decision_key in (
+        ("fault", "FAULT"),
+        ("extreme", "EXTREME"),
+        ("clean", "HEALTHY"),
+    ):
+        truth_mask = merged["truth_label"] == truth_key
+        total = int(truth_mask.sum())
+        hit = int((truth_mask & merged["decision_matches"]).sum())
+        predicted = int((merged["decision_label"] == decision_key).sum())
+        true_positive = hit
+        precision = true_positive / predicted if predicted else 0.0
+        recall = hit / total if total else 0.0
+        f1 = (
+            2 * precision * recall / (precision + recall)
+            if (precision + recall)
+            else 0.0
+        )
+        per_class[truth_key] = {
+            "total": total,
+            "predicted": predicted,
+            "precision": round(precision, 4),
+            "recall": round(recall, 4),
+            "f1": round(f1, 4),
+        }
+
+    recalls = [block["recall"] for block in per_class.values() if block["total"]]
+    balanced = float(np.mean(recalls)) if recalls else 0.0
+    macro_f1 = float(np.mean([block["f1"] for block in per_class.values()]))
+    window_accuracy = float(merged["decision_matches"].mean())
+
     return {
         "seed": seed,
         "window_days": WINDOW_DAYS,
+        "window_accuracy": round(window_accuracy, 4),
+        "balanced_accuracy": round(balanced, 4),
+        "macro_f1": round(macro_f1, 4),
+        "per_class": per_class,
         "window": window,
         "counts": {
             "readings": int(len(detections)),

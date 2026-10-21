@@ -118,9 +118,30 @@ def score_with_bank(bank, matrix):
     return scores, labels, components
 
 
+def percent_rank(values):
+    order = np.argsort(np.argsort(values)).astype(float)
+    return order / max(1.0, float(len(values) - 1))
+
+
+def weighted_ensemble(scores, weights=None):
+    if weights is None:
+        weights = config.DETECTOR_WEIGHTS
+    total = sum(weights.values())
+    combined = np.zeros(len(next(iter(scores.values()))), dtype=float)
+    for name, weight in weights.items():
+        key = f"{name}_score"
+        if key not in scores:
+            continue
+        combined += (weight / total) * percent_rank(scores[key])
+    return combined
+
+
 def fit_consensus(reference_matrix):
     bank = build_bank(reference_matrix)
     reference_scores, _, components = score_with_bank(bank, reference_matrix)
+    reference_ranks = weighted_ensemble(reference_scores)
+    threshold = float(np.quantile(reference_ranks, config.ENSEMBLE_QUANTILE))
+
     thresholds = {
         name.replace("_score", "_vote"): threshold_from_reference(scores, None)
         for name, scores in reference_scores.items()
@@ -134,17 +155,48 @@ def fit_consensus(reference_matrix):
     return {
         "bank": bank,
         "thresholds": thresholds,
+        "ensemble_threshold": threshold,
         "vote_rates": vote_rates,
         "pca_components": components,
         "reference_rows": int(len(reference_matrix)),
     }
 
 
-def assemble_detections(features, scores, labels, threshold_map):
+def assemble_detections(features, scores, labels, threshold_map, ensemble_threshold=None):
     values = features["measured_value"].astype(float)
     local_mean = rolling_mean(values)
     local_std = rolling_std(values).replace(0.0, np.nan).fillna(1.0)
+    short_deviation = ((values - local_mean) / local_std).fillna(0.0)
+
+    station_keys = features["station_id"].astype(str)
+    sensor_keys = features["sensor_name"].astype(str)
+    group_keys = station_keys + "|" + sensor_keys
+    frame = pd.DataFrame(
+        {
+            "group": group_keys.to_numpy(),
+            "timestamp": pd.to_datetime(features["timestamp"]).to_numpy(),
+            "value": values.to_numpy(),
+        }
+    ).sort_values(["group", "timestamp"])
+
+    long_mean = frame.groupby("group")["value"].transform(
+        lambda series: series.rolling(config.DEVELOPMENT_WINDOW_HOURS, min_periods=12).mean()
+    )
+    long_std = frame.groupby("group")["value"].transform(
+        lambda series: series.rolling(config.DEVELOPMENT_WINDOW_HOURS, min_periods=12).std()
+    )
+
+    long_deviation = ((frame["value"] - long_mean) / long_std.replace(0.0, np.nan)).fillna(0.0)
+    long_deviation = long_deviation.abs().groupby(frame["group"]).transform(
+        lambda series: series.rolling(12, min_periods=3).mean()
+    ).fillna(0.0)
+
+    restored_long = long_deviation.sort_index()
     sensor_deviation = ((values - local_mean) / local_std).fillna(0.0)
+    sensor_deviation = pd.Series(
+        np.maximum(short_deviation.abs().to_numpy(), restored_long.to_numpy()),
+        index=features.index,
+    )
 
     result = features[["station_id", "sensor_name", "timestamp", "measured_value"]].copy()
     result["sensor_deviation"] = sensor_deviation.to_numpy()
@@ -156,8 +208,16 @@ def assemble_detections(features, scores, labels, threshold_map):
 
     vote_matrix = np.column_stack(list(vote_columns.values()))
     vote_count = vote_matrix.sum(axis=1)
-    anomaly_score = vote_count / config.CONSENSUS_VOTE_TOTAL
-    is_anomaly = (vote_count >= config.CONSENSUS_VOTE_THRESHOLD).astype(int)
+
+    ensemble = weighted_ensemble(scores)
+    if ensemble_threshold is None:
+        ensemble_threshold = float(np.quantile(ensemble, config.ENSEMBLE_QUANTILE))
+    anomaly_score = np.clip(
+        0.5 * (vote_count / config.CONSENSUS_VOTE_TOTAL) + 0.5 * ensemble, 0.0, 1.0
+    )
+    is_anomaly = (
+        (vote_count >= config.CONSENSUS_VOTE_THRESHOLD) | (ensemble > ensemble_threshold)
+    ).astype(int)
 
     anomaly_flags = pd.Series(is_anomaly, index=result.index)
     group_key = result["station_id"].astype(str) + "|" + result["sensor_name"].astype(str)
@@ -187,7 +247,13 @@ def compute_consensus(features, matrix, reference_mask):
     reference_matrix = matrix[reference_mask]
     fitted = fit_consensus(reference_matrix)
     scores, labels, components = score_with_bank(fitted["bank"], matrix)
-    result = assemble_detections(features, scores, labels, fitted["thresholds"])
+    result = assemble_detections(
+        features,
+        scores,
+        labels,
+        fitted["thresholds"],
+        ensemble_threshold=fitted["ensemble_threshold"],
+    )
     result["pca_components"] = components
 
     dbscan_labels = labels["dbscan"]

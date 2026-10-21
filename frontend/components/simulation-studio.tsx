@@ -633,25 +633,11 @@ function RunReport({ result }: { result: SimResult }) {
 
   const cards = [
     {
-      label: "Replay accuracy",
-      value: stream.accuracy * 100,
-      decimals: 1,
-      suffix: "%",
-      caption: `${stream.correct} of ${stream.total} replayed readings landed correctly`,
-    },
-    {
       label: "Fault detection rate",
       value: detector.fault_detection_rate * 100,
       decimals: 1,
       suffix: "%",
       caption: `${result.confusion.fault.flagged} of ${result.confusion.fault.total} fault readings caught`,
-    },
-    {
-      label: "Precision",
-      value: detector.precision * 100,
-      decimals: 1,
-      suffix: "%",
-      caption: `range check: ${(baseline.precision * 100).toFixed(0)}% precision but ${(baseline.recall * 100).toFixed(0)}% recall`,
     },
     {
       label: "F1 on fault class",
@@ -661,11 +647,25 @@ function RunReport({ result }: { result: SimResult }) {
       caption: `${delta.f1 > 0 ? "+" : ""}${(delta.f1 * 100).toFixed(1)}pp vs range check`,
     },
     {
+      label: "Precision",
+      value: detector.precision * 100,
+      decimals: 1,
+      suffix: "%",
+      caption: `range check: ${(baseline.precision * 100).toFixed(0)}% precision but ${(baseline.recall * 100).toFixed(0)}% recall`,
+    },
+    {
       label: "False alarms",
       value: detector.false_positive_rate_clean * 100,
       decimals: 2,
       suffix: "%",
       caption: `${result.confusion.clean.flagged} of ${result.confusion.clean.total} clean readings`,
+    },
+    {
+      label: "Macro F1",
+      value: result.macro_f1,
+      decimals: 3,
+      suffix: "",
+      caption: "mean of fault, extreme and clean",
     },
   ];
 
@@ -686,8 +686,11 @@ function RunReport({ result }: { result: SimResult }) {
       </div>
 
       <p className="sim-report-lede">
-        These are computed on all {result.counts.readings.toLocaleString()} readings in the
-        window, not on the replay sample.
+        Computed on all {result.counts.readings.toLocaleString()} readings in the window, not on
+        the replay sample. Read fault detection rate and F1 first — plain accuracy is{" "}
+        <b>{(result.window_accuracy * 100).toFixed(1)}%</b> here, but it is flattered by the{" "}
+        {(100 * (result.counts.clean_readings / result.counts.readings)).toFixed(0)}% of readings
+        that are clean, so it says little about the detector.
       </p>
 
       <div className="metric-grid sim-metric-grid">

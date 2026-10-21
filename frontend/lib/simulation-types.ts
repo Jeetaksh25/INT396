@@ -72,6 +72,13 @@ export interface SimResult {
     clean_readings: number;
   };
   bins: { healthy: number; fault: number; extreme: number };
+  window_accuracy: number;
+  balanced_accuracy: number;
+  macro_f1: number;
+  per_class: Record<
+    "fault" | "extreme" | "clean",
+    { total: number; predicted: number; precision: number; recall: number; f1: number }
+  >;
   stream: SimStreamBlock;
   detector: SimMetricBlock;
   baseline: SimMetricBlock;

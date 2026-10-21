@@ -299,3 +299,49 @@ def reference_mask_for(features, fraction=config.REFERENCE_PERIOD_FRACTION):
     end = timestamps.max()
     cutoff = start + (end - start) * fraction
     return (timestamps <= cutoff).to_numpy()
+
+
+def clean_reference_mask_for(features, fraction=None):
+    timestamps = pd.to_datetime(features["timestamp"])
+    if fraction is None:
+        fraction = config.REFERENCE_PERIOD_FRACTION
+    start = timestamps.min()
+    end = timestamps.max()
+    cutoff = start + (end - start) * fraction
+    in_period = (timestamps <= cutoff).to_numpy()
+
+    deviation = features["climatology_deviation"].astype(float).fillna(0.0).to_numpy()
+    violation = (
+        features["physics_violation_count"].astype(float).fillna(0.0).to_numpy()
+        if "physics_violation_count" in features
+        else np.zeros(len(features))
+    )
+
+    station_keys = features["station_id"].astype(str).to_numpy()
+    frame = pd.DataFrame(
+        {
+            "station_id": station_keys,
+            "timestamp": timestamps.to_numpy(),
+            "deviation": deviation,
+            "violation": violation,
+        }
+    )
+    frame = frame.sort_values(["station_id", "timestamp"])
+    smoothed = frame.groupby("station_id")["deviation"].transform(
+        lambda series: series.rolling(24, min_periods=8).mean()
+    )
+    frame["sustained"] = smoothed.fillna(0.0)
+
+    limit = float(frame["sustained"].quantile(config.CLEAN_REFERENCE_QUANTILE))
+    flag = (
+        (frame["sustained"] <= limit)
+        & (frame["violation"] <= 0.0)
+        & (frame["deviation"] <= float(frame["deviation"].quantile(0.98)))
+    )
+    frame["quiet"] = flag
+
+    restored = frame.sort_index()
+    mask = (restored["quiet"].to_numpy()) & in_period
+    if mask.sum() < max(500, int(0.1 * len(features))):
+        return in_period
+    return mask
