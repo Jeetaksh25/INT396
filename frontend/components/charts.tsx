@@ -52,11 +52,7 @@ export function NetworkTimeline({ points }: { points: TimelinePoint[] }) {
           <CartesianGrid stroke="oklch(26% 0.01 255)" strokeDasharray="2 4" vertical={false} />
           <XAxis dataKey="label" tick={axisStyle} tickLine={false} axisLine={false} minTickGap={40} />
           <YAxis tick={axisStyle} tickLine={false} axisLine={false} width={44} />
-          <Tooltip
-            contentStyle={tooltipStyle}
-            labelStyle={{ color: "oklch(78% 0.008 250)" }}
-            formatter={(value: number, name: string) => [value, name]}
-          />
+          <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: "oklch(78% 0.008 250)" }} />
           <Area
             type="monotone"
             dataKey="anomalies"
