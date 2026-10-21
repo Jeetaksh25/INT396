@@ -77,6 +77,7 @@ FEATURE_COLUMNS = [
     "cross_sensor_deviation_score",
     "neighbour_deviation_score",
     "rule_violation_count",
+    "missing_reading",
 ]
 
 CONSENSUS_VOTE_THRESHOLD = 2

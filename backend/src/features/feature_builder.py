@@ -1,0 +1,163 @@
+import numpy as np
+import pandas as pd
+
+import config
+
+
+def rolling_median(series, window=24):
+    return series.rolling(window=window, min_periods=max(3, window // 4)).median()
+
+
+def rolling_mean(series, window=24):
+    return series.rolling(window=window, min_periods=max(3, window // 4)).mean()
+
+
+def rolling_std(series, window=24):
+    return series.rolling(window=window, min_periods=max(3, window // 4)).std()
+
+
+def compute_station_reference_stats(station_frame, reference_hours):
+    stats = {}
+    for sensor_name in config.SENSORS:
+        values = station_frame[sensor_name].astype(float).iloc[:reference_hours]
+        mean_value = float(values.mean())
+        std_value = float(values.std())
+        if not np.isfinite(std_value) or std_value < 1e-9:
+            std_value = 1.0
+        stats[sensor_name] = {"mean": mean_value, "std": std_value}
+    return stats
+
+
+def standardize_sensor(series, sensor_stats):
+    return (series.astype(float) - sensor_stats["mean"]) / sensor_stats["std"]
+
+
+def build_neighbour_deviation(station_id, sensor_name, station_frames, station_stats, timestamp_index):
+    deviation_columns = []
+    for other_id, other_frame in station_frames.items():
+        if other_id == station_id:
+            continue
+        other_values = standardize_sensor(other_frame[sensor_name], station_stats[other_id][sensor_name])
+        deviation_columns.append(other_values.abs())
+    if not deviation_columns:
+        return pd.Series(0.0, index=timestamp_index)
+    neighbour_matrix = pd.concat(deviation_columns, axis=1)
+    return neighbour_matrix.mean(axis=1)
+
+
+def physical_rule_violations(station_frame):
+    temperature = station_frame["temperature"].astype(float)
+    humidity = station_frame["humidity"].astype(float)
+    wind_speed = station_frame["wind_speed"].astype(float)
+    dew_point = temperature - (100.0 - humidity) / 5.0
+    violation_count = (
+        (dew_point > temperature + 0.5).astype(int)
+        + ((humidity < 0.0) | (humidity > 100.0)).astype(int)
+        + (wind_speed < 0.0).astype(int)
+    )
+    return violation_count
+
+
+def build_all_features(wide_frame):
+    station_frames = {
+        station_id: group.droplevel("station_id")
+        for station_id, group in wide_frame.groupby(level="station_id")
+    }
+    station_ids = list(station_frames)
+    hours_per_station = len(station_frames[station_ids[0]])
+    reference_hours = int(hours_per_station * config.REFERENCE_PERIOD_FRACTION)
+
+    station_stats = {
+        station_id: compute_station_reference_stats(station_frames[station_id], reference_hours)
+        for station_id in station_ids
+    }
+
+    feature_blocks = []
+    for station_id in station_ids:
+        station_frame = station_frames[station_id]
+        timestamp_index = station_frame.index
+
+        standardized_by_sensor = {
+            sensor_name: standardize_sensor(
+                station_frame[sensor_name], station_stats[station_id][sensor_name]
+            )
+            for sensor_name in config.SENSORS
+        }
+
+        neighbour_by_sensor = {
+            sensor_name: build_neighbour_deviation(
+                station_id, sensor_name, station_frames, station_stats, timestamp_index
+            )
+            for sensor_name in config.SENSORS
+        }
+
+        cross_sensor_by_sensor = {}
+        for sensor_name in config.SENSORS:
+            other_names = [name for name in config.SENSORS if name != sensor_name]
+            combined = pd.concat(
+                [standardized_by_sensor[name].abs() for name in other_names], axis=1
+            )
+            cross_sensor_by_sensor[sensor_name] = combined.mean(axis=1)
+
+        hour_values = timestamp_index.hour.to_numpy()
+        hour_angle = 2.0 * np.pi * hour_values / 24.0
+        hour_sin = pd.Series(np.sin(hour_angle), index=timestamp_index)
+        hour_cos = pd.Series(np.cos(hour_angle), index=timestamp_index)
+
+        violations = physical_rule_violations(station_frame)
+
+        for sensor_name in config.SENSORS:
+            values = station_frame[sensor_name].astype(float)
+            block = pd.DataFrame(
+                {
+                    "value_standardized": standardized_by_sensor[sensor_name],
+                    "deviation_from_median_24h": values - rolling_median(values),
+                    "rate_of_change": values.diff(),
+                    "rolling_mean_24h": rolling_mean(values),
+                    "rolling_std_24h": rolling_std(values),
+                    "hour_of_day_sin": hour_sin,
+                    "hour_of_day_cos": hour_cos,
+                    "cross_sensor_deviation_score": cross_sensor_by_sensor[sensor_name],
+                    "neighbour_deviation_score": neighbour_by_sensor[sensor_name],
+                    "rule_violation_count": violations.astype(float),
+                    "missing_reading": values.isna().astype(float),
+                }
+            )
+            block["station_id"] = station_id
+            block["sensor_name"] = sensor_name
+            block["timestamp"] = timestamp_index
+            block["measured_value"] = values.to_numpy()
+            feature_blocks.append(block)
+
+    features = pd.concat(feature_blocks, ignore_index=True)
+    features = features.sort_values(["station_id", "sensor_name", "timestamp"]).reset_index(drop=True)
+    return features, station_stats
+
+
+def build_training_matrix(features, reference_mask):
+    standardized = features.copy()
+    statistics = {}
+    for column in config.FEATURE_COLUMNS:
+        reference_values = standardized.loc[reference_mask, column].astype(float)
+        mean_value = float(reference_values.mean())
+        std_value = float(reference_values.std())
+        if not np.isfinite(std_value) or std_value < 1e-9:
+            std_value = 1.0
+        if not np.isfinite(mean_value):
+            mean_value = 0.0
+        standardized[column] = (standardized[column].astype(float) - mean_value) / std_value
+        statistics[column] = {"mean": mean_value, "std": std_value}
+    standardized[config.FEATURE_COLUMNS] = standardized[config.FEATURE_COLUMNS].fillna(0.0)
+    standardized[config.FEATURE_COLUMNS] = standardized[config.FEATURE_COLUMNS].replace(
+        [np.inf, -np.inf], 0.0
+    )
+    matrix = standardized[config.FEATURE_COLUMNS].to_numpy(dtype=float)
+    return standardized, matrix, statistics
+
+
+def reference_mask_for(features, fraction=config.REFERENCE_PERIOD_FRACTION):
+    timestamps = pd.to_datetime(features["timestamp"])
+    start = timestamps.min()
+    end = timestamps.max()
+    cutoff = start + (end - start) * fraction
+    return (timestamps <= cutoff).to_numpy()

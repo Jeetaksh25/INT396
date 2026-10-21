@@ -18,7 +18,7 @@ def agglomerative_clustering(feature_matrix, linkage="ward", n_clusters=8):
 
     merge_matrix = []
 
-    for _ in range(n_rows - n_clusters):
+    for _ in range(n_rows - 1):
         masked = np.where(active[:, None] & active[None, :], distances, np.inf)
         np.fill_diagonal(masked, np.inf)
         flat_index = int(np.argmin(masked))
@@ -38,12 +38,12 @@ def agglomerative_clustering(feature_matrix, linkage="ward", n_clusters=8):
         elif linkage == "ward":
             new_size = sizes[index_a] + sizes[index_b]
             new_centroid = (sizes[index_a] * centroids[index_a] + sizes[index_b] * centroids[index_b]) / new_size
-            updated = np.copy(distances[index_a])
-            for other in range(n_rows):
-                if not active[other] or other in (index_a, index_b):
-                    continue
-                other_distance = float(np.sqrt(np.sum((centroids[other] - new_centroid) ** 2)))
-                updated[other] = np.sqrt(2.0 * new_size * sizes[other] / (new_size + sizes[other])) * other_distance
+            centroid_shifts = centroids - new_centroid
+            centroid_distances = np.sqrt(np.sum(centroid_shifts * centroid_shifts, axis=1))
+            scale = np.sqrt(2.0 * new_size * sizes / (new_size + sizes))
+            updated = scale * centroid_distances
+            updated[index_a] = np.inf
+            updated[index_b] = np.inf
             centroids[index_a] = new_centroid
         else:
             raise ValueError("unknown linkage: " + str(linkage))
@@ -56,7 +56,7 @@ def agglomerative_clustering(feature_matrix, linkage="ward", n_clusters=8):
         distances[:, index_b] = np.inf
         sizes[index_a] += sizes[index_b]
 
-    merge_array = np.array(merge_matrix, dtype=float) if merge_matrix else np.zeros((0, 4))
+    merge_array = np.array(merge_matrix, dtype=float).reshape(-1, 4)
     labels = cut_dendrogram(merge_array, n_clusters)
     return merge_array, labels
 
@@ -66,43 +66,36 @@ def cut_dendrogram(merge_matrix, n_clusters):
     if merge_matrix.ndim != 2 or merge_matrix.shape[0] == 0:
         return np.zeros(0, dtype=int)
 
+    n_rows = merge_matrix.shape[0] + 1
     n_clusters = int(n_clusters)
-    merge_count = merge_matrix.shape[0]
-    largest_index = int(max(np.max(merge_matrix[:, 0]), np.max(merge_matrix[:, 1])))
-    if largest_index <= merge_count:
-        n_rows = merge_count + 1
-    else:
-        n_rows = merge_count + n_clusters
-
-    merges_to_apply = min(n_rows - n_clusters, merge_count)
-    merges_to_apply = max(merges_to_apply, 0)
+    merges_to_apply = max(n_rows - n_clusters, 0)
 
     parent = list(range(n_rows))
 
-    def find(node):
-        while parent[node] != node:
-            parent[node] = parent[parent[node]]
-            node = parent[node]
-        return node
-
-    def union(left, right):
-        root_left = find(left)
-        root_right = find(right)
-        if root_left != root_right:
-            parent[root_right] = root_left
-
-    for row in range(merge_matrix.shape[0]):
+    for row in range(merges_to_apply):
         index_a = int(merge_matrix[row, 0])
         index_b = int(merge_matrix[row, 1])
-        union(index_a, index_b)
 
-    roots = [find(node) for node in range(n_rows)]
-    order = []
-    for root in roots:
-        if root not in order:
-            order.append(root)
+        root_a = index_a
+        while parent[root_a] != root_a:
+            parent[root_a] = parent[parent[root_a]]
+            root_a = parent[root_a]
+
+        root_b = index_b
+        while parent[root_b] != root_b:
+            parent[root_b] = parent[parent[root_b]]
+            root_b = parent[root_b]
+
+        if root_a != root_b:
+            parent[root_b] = root_a
 
     labels = np.zeros(n_rows, dtype=int)
+    roots = []
     for node in range(n_rows):
-        labels[node] = order.index(roots[node])
+        root = node
+        while parent[root] != root:
+            root = parent[root]
+        if root not in roots:
+            roots.append(root)
+        labels[node] = roots.index(root)
     return labels
