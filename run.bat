@@ -39,6 +39,7 @@ if not exist "backend\results\metrics_summary.json" (
     if errorlevel 1 goto failed
     python -m src.evaluation.run_experiment
     if errorlevel 1 goto failed
+    python -m src.evaluation.model_card
     python -m src.evaluation.export_rules
     python -m src.evaluation.generate_figures
     popd

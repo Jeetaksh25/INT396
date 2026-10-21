@@ -132,7 +132,7 @@ export default async function ModelPage() {
             </span>
             <span>{card.models.length} detectors · {card.features.count} features</span>
             <span className="mono-label" style={{ letterSpacing: 0 }}>
-              seed {dataset.source ? "42" : "42"}
+              seed 42 · {card.runtime.detector_seconds ?? 0}s detector
             </span>
           </>
         }
@@ -215,7 +215,7 @@ export default async function ModelPage() {
 
       <Section
         title="Consensus behaviour"
-        note="A reading is an anomaly when at least two detectors vote. The histogram shows why the threshold sits where it does."
+        note={`A reading is an anomaly when at least ${consensus.vote_threshold} of ${consensus.vote_total} detectors vote. Most readings draw no votes at all, which is what makes a unanimous flag meaningful.`}
       >
         <div className="split">
           <BlurFade delay={0.02} duration={0.6} offset={16}>

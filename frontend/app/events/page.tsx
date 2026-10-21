@@ -83,10 +83,10 @@ export default async function EventsPage() {
                   <TickedNumber value={faultEvents.length} />
                 </div>
                 <div className="metric-foot">
-                  <span className="chip" data-tone="down">
-                    {((faultEvents.length / Math.max(events.length, 1)) * 100).toFixed(0)}%
+                  <span>
+                    {((faultEvents.length / Math.max(events.length, 1)) * 100).toFixed(1)}% of
+                    episodes
                   </span>
-                  <span>of episodes</span>
                 </div>
               </div>
             </BlurFade>
@@ -99,10 +99,10 @@ export default async function EventsPage() {
                   <TickedNumber value={extremeEvents.length} />
                 </div>
                 <div className="metric-foot">
-                  <span className="chip" data-tone="accent">
-                    {((extremeEvents.length / Math.max(events.length, 1)) * 100).toFixed(0)}%
+                  <span>
+                    {((extremeEvents.length / Math.max(events.length, 1)) * 100).toFixed(1)}% of
+                    episodes
                   </span>
-                  <span>of episodes</span>
                 </div>
               </div>
             </BlurFade>

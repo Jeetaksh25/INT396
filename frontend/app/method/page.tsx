@@ -75,7 +75,8 @@ export default async function MethodPage() {
                   body: (
                     <>
                       Each detector scores every reading; each score is compared against its own
-                      reference-period quantile. Two or more votes mark an anomaly.
+                      reference-period quantile. Three or more votes mark an anomaly — two was
+                      tested and traded too much precision for recall.
                     </>
                   ),
                 },
