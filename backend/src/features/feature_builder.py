@@ -99,6 +99,16 @@ def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
         hour_sin = pd.Series(np.sin(hour_angle), index=timestamp_index)
         hour_cos = pd.Series(np.cos(hour_angle), index=timestamp_index)
 
+        deviations = {
+            sensor_name: (
+                (station_frame[sensor_name].astype(float) - rolling_median(station_frame[sensor_name].astype(float)))
+                / rolling_std(station_frame[sensor_name].astype(float)).replace(0.0, np.nan).fillna(1.0)
+            ).abs()
+            for sensor_name in config.SENSORS
+        }
+        coherent_deviation = pd.concat(deviations, axis=1)
+        coherent_flags = (coherent_deviation > config.COHERENT_DEVIATION_THRESHOLD).astype(float)
+
         violations = physical_rule_violations(station_frame)
         if rule_violations is None:
             association_violations = violations.to_numpy(dtype=float)
@@ -115,6 +125,7 @@ def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
                     "rolling_mean_24h": rolling_mean(values),
                     "rolling_std_24h": rolling_std(values),
                     "flatline_score": flatline_score(values),
+                    "coherent_deviation": coherent_flags[sensor_name],
                     "hour_of_day_sin": hour_sin,
                     "hour_of_day_cos": hour_cos,
                     "rule_violation_count": association_violations.astype(float),

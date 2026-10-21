@@ -17,6 +17,18 @@ def build_context_tables(detections, feature_frame):
     )
     anomaly_matrix["anomalous_sensor_count"] = anomaly_matrix.sum(axis=1)
 
+    extreme_matrix = (
+        feature_frame.pivot_table(
+            index=["station_id", "timestamp"],
+            columns="sensor_name",
+            values="coherent_deviation",
+            aggfunc="max",
+            fill_value=0,
+        )
+        .reindex(columns=config.SENSORS, fill_value=0)
+    )
+    extreme_matrix["coherent_sensor_count"] = extreme_matrix.sum(axis=1)
+
     deviation_matrix = (
         detections.pivot_table(
             index=["station_id", "timestamp"],
@@ -66,6 +78,11 @@ def build_context_tables(detections, feature_frame):
         how="left",
     )
     context = context.merge(
+        extreme_matrix[["coherent_sensor_count"]].reset_index(),
+        on=["station_id", "timestamp"],
+        how="left",
+    )
+    context = context.merge(
         neighbour_agreement.reset_index(),
         on=["station_id", "sensor_name", "timestamp"],
         how="left",
@@ -75,8 +92,20 @@ def build_context_tables(detections, feature_frame):
         on=["station_id", "timestamp"],
         how="left",
     )
-    context[["neighbour_agreement", "physics_violation", "anomalous_sensor_count"]] = context[
-        ["neighbour_agreement", "physics_violation", "anomalous_sensor_count"]
+    context[
+        [
+            "neighbour_agreement",
+            "physics_violation",
+            "anomalous_sensor_count",
+            "coherent_sensor_count",
+        ]
+    ] = context[
+        [
+            "neighbour_agreement",
+            "physics_violation",
+            "anomalous_sensor_count",
+            "coherent_sensor_count",
+        ]
     ].fillna(0.0)
     return context
 
@@ -104,15 +133,19 @@ def classify_group(group):
     physics = float(group["physics_violation"].max())
     duration = int(group["timestamp"].nunique())
     sensors_flagged = int(group["anomalous_sensor_count"].max())
+    coherent_sensors = int(group["coherent_sensor_count"].max())
     single_sensor = sensors_flagged <= 1
+    regional = mean_neighbour >= config.NEIGHBOUR_AGREEMENT_THRESHOLD
 
     if physics > 0:
         return "FAULT", "physics_inconsistent", mean_neighbour, single_sensor, duration
-    if single_sensor and mean_neighbour < config.NEIGHBOUR_AGREEMENT_THRESHOLD:
+    if single_sensor and coherent_sensors <= 1:
         return "FAULT", "isolated_sensor", mean_neighbour, single_sensor, duration
-    if mean_neighbour >= config.NEIGHBOUR_AGREEMENT_THRESHOLD and not single_sensor:
+    if coherent_sensors >= 2 and regional:
         return "EXTREME", "regional_coherent", mean_neighbour, single_sensor, duration
-    if duration > config.SUSTAINED_EVENT_HOURS and mean_neighbour >= config.NEIGHBOUR_AGREEMENT_THRESHOLD:
+    if coherent_sensors >= 3 and duration > config.SUSTAINED_EVENT_HOURS:
+        return "EXTREME", "coherent_regime", mean_neighbour, single_sensor, duration
+    if duration > config.SUSTAINED_EVENT_HOURS and regional:
         return "EXTREME", "sustained_regime", mean_neighbour, single_sensor, duration
     return "FAULT", "isolated_or_erratic", mean_neighbour, single_sensor, duration
 
