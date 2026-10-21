@@ -269,18 +269,23 @@ def pick_stream(detections, labels, target=STREAM_TARGET):
     ]
     merged = merged.sort_values(["timestamp", "station_id", "sensor_name"]).reset_index(drop=True)
 
-    kinds = ("clean", "fault", "extreme")
-    share = {"clean": 0.60, "fault": 0.22, "extreme": 0.18}
-    pools = {kind: merged.index[merged["truth"] == kind].to_numpy() for kind in kinds}
+    flagged = merged.index[merged["is_local_anomaly"] == 1].to_numpy()
+    quiet = merged.index[merged["is_local_anomaly"] == 0].to_numpy()
 
+    detected_budget = int(round(target * 0.42))
     chosen = []
-    for kind in kinds:
-        pool = pools[kind]
-        limit = min(len(pool), int(round(target * share[kind])))
-        if limit <= 0:
-            continue
+    if len(flagged):
+        limit = min(len(flagged), detected_budget)
         chosen.extend(
-            int(item) for item in pool[np.linspace(0, len(pool) - 1, limit).astype(int)]
+            int(item)
+            for item in flagged[np.linspace(0, len(flagged) - 1, limit).astype(int)]
+        )
+
+    remaining = target - len(chosen)
+    if len(quiet) and remaining > 0:
+        limit = min(len(quiet), remaining)
+        chosen.extend(
+            int(item) for item in quiet[np.linspace(0, len(quiet) - 1, limit).astype(int)]
         )
 
     shortfall = target - len(chosen)
