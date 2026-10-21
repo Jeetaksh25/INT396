@@ -48,8 +48,10 @@ def fit_isolation_score(reference_matrix, full_matrix):
 
 def fit_lof_score(reference_matrix, full_matrix):
     model = LocalOutlierFactorCustom(n_neighbors=config.LOF_NEIGHBOURS)
-    labels, negative_scores = model.fit_predict(full_matrix)
-    return negative_scores, labels
+    model.fit(reference_matrix)
+    scores = model.score_samples(full_matrix)
+    labels = np.where(scores > 1.5, -1, 1)
+    return -scores, labels
 
 
 def threshold_from_reference(scores, reference_mask, quantile=config.REFERENCE_QUANTILE):
