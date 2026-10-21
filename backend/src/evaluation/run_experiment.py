@@ -15,6 +15,7 @@ from src.features.feature_builder import (
     build_training_matrix,
     reference_mask_for,
 )
+from src.features.leakage_guard import assert_no_labels
 from src.features.rule_features import mine_weather_rules, rule_violations_for_wide
 
 
@@ -28,6 +29,7 @@ def load_dataset():
 
 
 def build_wide_from_dataset(dataset):
+    assert_no_labels(dataset, "detector input")
     wide = (
         dataset.pivot_table(
             index=["station_id", "timestamp"],
@@ -56,6 +58,7 @@ def run_pipeline(dataset, clean_wide):
     features, station_stats = build_all_features(
         wide_measured, rule_violations=measured_rule_violations
     )
+    assert_no_labels(features, "feature matrix")
     reference_mask = reference_mask_for(features)
     standardized_features, matrix, feature_stats = build_training_matrix(features, reference_mask)
     timing["features_seconds"] = round(time.time() - feature_start, 2)
@@ -74,6 +77,7 @@ def run_pipeline(dataset, clean_wide):
 
     discriminator_start = time.time()
     events_frame = classify_all_events(detections, standardized_features)
+    assert_no_labels(detections, "detector output")
     labelled = apply_event_labels(detections, events_frame)
     timing["discriminator_seconds"] = round(time.time() - discriminator_start, 2)
 
