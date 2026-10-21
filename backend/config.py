@@ -79,6 +79,7 @@ FEATURE_COLUMNS = [
     "rate_of_change",
     "rolling_mean_24h",
     "rolling_std_24h",
+    "flatline_score",
     "hour_of_day_sin",
     "hour_of_day_cos",
     "rule_violation_count",

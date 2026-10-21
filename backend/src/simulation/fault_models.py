@@ -100,7 +100,7 @@ def inject_dropout(clean_series, rng, sensor_name):
     drop_count = max(1, int(window_length * drop_fraction))
     drop_indices = rng.choice(np.arange(start, end), size=drop_count, replace=False)
     values[drop_indices] = np.nan
-    mask[start:end] = True
+    mask[drop_indices] = True
     return values, mask
 
 

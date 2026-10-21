@@ -16,6 +16,13 @@ def rolling_std(series, window=24):
     return series.rolling(window=window, min_periods=max(3, window // 4)).std()
 
 
+def flatline_score(series, window=6):
+    rounded = series.round(2)
+    identical = rounded.diff().abs().fillna(1.0) < 1e-9
+    streaks = identical.astype(int).rolling(window=window, min_periods=window).sum()
+    return (streaks >= window - 1).astype(float)
+
+
 def compute_station_reference_stats(station_frame, reference_hours):
     stats = {}
     for sensor_name in config.SENSORS:
@@ -107,6 +114,7 @@ def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
                     "rate_of_change": values.diff(),
                     "rolling_mean_24h": rolling_mean(values),
                     "rolling_std_24h": rolling_std(values),
+                    "flatline_score": flatline_score(values),
                     "hour_of_day_sin": hour_sin,
                     "hour_of_day_cos": hour_cos,
                     "rule_violation_count": association_violations.astype(float),

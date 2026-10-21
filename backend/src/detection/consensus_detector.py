@@ -52,7 +52,7 @@ def fit_lof_score(reference_matrix, full_matrix):
     model.fit(reference_matrix)
     scores = model.score_samples(full_matrix)
     labels = np.where(scores > 1.5, -1, 1)
-    return -scores, labels
+    return scores, labels
 
 
 def threshold_from_reference(scores, reference_mask, quantile=config.REFERENCE_QUANTILE):
