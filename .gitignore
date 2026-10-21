@@ -20,3 +20,6 @@ backend/data/processed/clean_wide.parquet
 backend/data/processed/clean_long.parquet
 backend/results/detections.csv
 backend/results/tune_*.parquet
+
+backend/results/simulation_bank.pkl
+backend/results/*.pkl
