@@ -32,7 +32,7 @@ def _average_path_length_table(max_size):
     table[0] = 1.0
     table[1] = 1.0
     if max_size + 1 >= 2:
-        table[2:] = 2.0 * harmonic[:-2] - 2.0 * (sizes[2:] - 1.0) / sizes[2:]
+        table[2:] = 2.0 * harmonic[1:-1] - 2.0 * (sizes[2:] - 1.0) / sizes[2:]
     return table
 
 
@@ -43,6 +43,7 @@ class IsolationForestCustom:
         self.random_seed = random_seed
         self.trees_ = []
         self.normalizer_ = 1.0
+        self.average_path_table_ = _average_path_length_table(1)
 
     def _build_tree(self, points, depth, depth_limit, generator):
         size = points.shape[0]
@@ -125,8 +126,12 @@ class IsolationForestCustom:
                 values = feature_matrix[internal_rows, features[internal_nodes]]
                 go_left[internal] = values < splits[internal_nodes]
 
-            next_nodes = np.where(go_left, left_children[nodes], right_children[nodes])
-            next_nodes = np.where(is_leaf, nodes, next_nodes)
+            next_nodes = np.where(
+                go_left,
+                left_children[active_nodes],
+                right_children[active_nodes],
+            )
+            next_nodes = np.where(is_leaf, active_nodes, next_nodes)
             depths[active_rows] = depths[active_rows] + np.where(is_leaf, 0.0, 1.0)
             nodes[active_rows] = next_nodes
             active[active_rows] = ~is_leaf
@@ -141,6 +146,7 @@ class IsolationForestCustom:
         sample_size = min(self.sub_sample_size, n_rows)
         depth_limit = int(math.ceil(math.log2(max(sample_size, 2))))
         self.normalizer_ = _average_path_length(sample_size)
+        self.average_path_table_ = _average_path_length_table(sample_size + 1)
 
         self.trees_ = []
         for _ in range(self.n_trees):

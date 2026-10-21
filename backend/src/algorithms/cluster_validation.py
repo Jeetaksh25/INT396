@@ -41,17 +41,18 @@ def silhouette_coefficient(feature_matrix, labels):
     n_points = points.shape[0]
 
     mean_to_cluster = np.zeros((n_points, unique_labels.shape[0]))
+    cluster_counts = np.zeros(unique_labels.shape[0])
     for position, cluster_id in enumerate(unique_labels):
         member_mask = point_labels == cluster_id
         count = int(np.sum(member_mask))
-        sums = np.sum(distances[:, member_mask], axis=1)
-        if count > 1:
-            mean_to_cluster[:, position] = sums / (count - 1)
-        else:
-            mean_to_cluster[:, position] = sums / count
+        cluster_counts[position] = count
+        mean_to_cluster[:, position] = np.sum(distances[:, member_mask], axis=1) / count
 
     own_positions = np.searchsorted(unique_labels, point_labels)
-    own_mean = mean_to_cluster[np.arange(n_points), own_positions]
+    own_counts = cluster_counts[own_positions]
+    own_mean = np.zeros(n_points)
+    has_neighbours = own_counts > 1
+    own_mean[has_neighbours] = mean_to_cluster[np.arange(n_points), own_positions][has_neighbours] * own_counts[has_neighbours] / (own_counts[has_neighbours] - 1)
 
     other_mean = mean_to_cluster.copy()
     other_mean[np.arange(n_points), own_positions] = np.inf
@@ -59,7 +60,7 @@ def silhouette_coefficient(feature_matrix, labels):
 
     denominator = np.maximum(own_mean, nearest_other)
     silhouette_values = np.zeros(n_points)
-    nonzero = denominator > 0.0
+    nonzero = (denominator > 0.0) & has_neighbours
     silhouette_values[nonzero] = (nearest_other[nonzero] - own_mean[nonzero]) / denominator[nonzero]
     return float(np.mean(silhouette_values))
 

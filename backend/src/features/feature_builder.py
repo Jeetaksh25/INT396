@@ -49,16 +49,19 @@ def physical_rule_violations(station_frame):
     temperature = station_frame["temperature"].astype(float)
     humidity = station_frame["humidity"].astype(float)
     wind_speed = station_frame["wind_speed"].astype(float)
+    pressure = station_frame["pressure"].astype(float)
     dew_point = temperature - (100.0 - humidity) / 5.0
     violation_count = (
-        (dew_point > temperature + 0.5).astype(int)
+        (dew_point > temperature + 1.0).astype(int)
         + ((humidity < 0.0) | (humidity > 100.0)).astype(int)
         + (wind_speed < 0.0).astype(int)
+        + ((temperature < -60.0) | (temperature > 60.0)).astype(int)
+        + ((pressure < 870.0) | (pressure > 1085.0)).astype(int)
     )
     return violation_count
 
 
-def build_all_features(wide_frame):
+def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
     station_frames = {
         station_id: group.droplevel("station_id")
         for station_id, group in wide_frame.groupby(level="station_id")
@@ -105,6 +108,10 @@ def build_all_features(wide_frame):
         hour_cos = pd.Series(np.cos(hour_angle), index=timestamp_index)
 
         violations = physical_rule_violations(station_frame)
+        if rule_violations is None:
+            association_violations = violations.to_numpy(dtype=float)
+        else:
+            association_violations = rule_violations.loc[station_id].reindex(timestamp_index).fillna(0.0).to_numpy()
 
         for sensor_name in config.SENSORS:
             values = station_frame[sensor_name].astype(float)
@@ -119,7 +126,8 @@ def build_all_features(wide_frame):
                     "hour_of_day_cos": hour_cos,
                     "cross_sensor_deviation_score": cross_sensor_by_sensor[sensor_name],
                     "neighbour_deviation_score": neighbour_by_sensor[sensor_name],
-                    "rule_violation_count": violations.astype(float),
+                    "rule_violation_count": association_violations.astype(float),
+                    "physics_violation_count": violations.astype(float),
                     "missing_reading": values.isna().astype(float),
                 }
             )

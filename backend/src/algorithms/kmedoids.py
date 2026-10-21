@@ -7,6 +7,7 @@ class KMedoidsCustom:
         self.max_iter = max_iter
         self.random_seed = random_seed
         self.medoid_indices_ = None
+        self.medoid_points_ = None
         self.labels_ = None
         self.cost_ = None
 
@@ -62,13 +63,13 @@ class KMedoidsCustom:
             current_cost = best_cost
 
         self.medoid_indices_ = medoids
+        self.medoid_points_ = feature_matrix[medoids].copy()
         self.labels_, self.cost_ = self._assign(distances, medoids)
         return self
 
     def predict(self, feature_matrix):
         feature_matrix = np.asarray(feature_matrix, dtype=float)
-        medoids = np.asarray(feature_matrix[self.medoid_indices_], dtype=float)
-        difference = feature_matrix[:, None, :] - medoids[None, :, :]
+        difference = feature_matrix[:, None, :] - self.medoid_points_[None, :, :]
         distances = np.sqrt(np.sum(difference * difference, axis=2))
         return np.argmin(distances, axis=1)
 
