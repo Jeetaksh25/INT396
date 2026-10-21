@@ -6,11 +6,10 @@ import config
 
 def build_context_tables(detections, feature_frame):
     anomaly_matrix = (
-        detections.assign(flag=detections["is_anomaly"].astype(int))
-        .pivot_table(
+        detections.pivot_table(
             index=["station_id", "timestamp"],
             columns="sensor_name",
-            values="flag",
+            values="is_local_anomaly",
             aggfunc="max",
             fill_value=0,
         )
@@ -31,7 +30,7 @@ def build_context_tables(detections, feature_frame):
     neighbour_frames = []
     for sensor_name in config.SENSORS:
         wide = deviation_matrix[sensor_name].unstack(level="station_id")
-        flagged = (wide > 1.5).astype(float)
+        flagged = (wide > config.NEIGHBOUR_DEVIATION_THRESHOLD).astype(float)
         station_count = max(wide.shape[1] - 1, 1)
         others_flagged = flagged.sum(axis=1).to_numpy()[:, None] - flagged.to_numpy()
         agreement = pd.DataFrame(
@@ -59,7 +58,7 @@ def build_context_tables(detections, feature_frame):
     )
 
     context = detections[
-        ["station_id", "sensor_name", "timestamp", "is_anomaly", "anomaly_score"]
+        ["station_id", "sensor_name", "timestamp", "is_anomaly", "is_local_anomaly", "anomaly_score"]
     ].copy()
     context = context.merge(
         anomaly_matrix[["anomalous_sensor_count"]].reset_index(),
@@ -83,7 +82,7 @@ def build_context_tables(detections, feature_frame):
 
 
 def assign_event_ids(context):
-    flagged = context[context["is_anomaly"] == 1].copy()
+    flagged = context[context["is_local_anomaly"] == 1].copy()
     flagged = flagged.sort_values(["station_id", "sensor_name", "timestamp"]).reset_index(drop=True)
     time_gap = flagged.groupby(["station_id", "sensor_name"])["timestamp"].diff()
     new_event = time_gap.isna() | (time_gap > pd.Timedelta(hours=2))
@@ -156,7 +155,7 @@ def apply_event_labels(detection_frame, events_frame):
         labelled["is_extreme_flagged"] = 0
         return labelled
 
-    flagged = labelled[labelled["is_anomaly"] == 1].copy()
+    flagged = labelled[labelled["is_local_anomaly"] == 1].copy()
     flagged = flagged.sort_values(["station_id", "sensor_name", "timestamp"]).reset_index(drop=True)
     time_gap = flagged.groupby(["station_id", "sensor_name"])["timestamp"].diff()
     new_event = time_gap.isna() | (time_gap > pd.Timedelta(hours=2))
@@ -177,9 +176,9 @@ def apply_event_labels(detection_frame, events_frame):
     labelled.loc[flagged.index, "event_label"] = mapped.to_numpy()
     labelled.loc[flagged.index, "reason_code"] = mapped_reason.to_numpy()
     labelled["is_fault_flagged"] = (
-        (labelled["is_anomaly"] == 1) & (labelled["event_label"] == "FAULT")
+        (labelled["is_local_anomaly"] == 1) & (labelled["event_label"] == "FAULT")
     ).astype(int)
     labelled["is_extreme_flagged"] = (
-        (labelled["is_anomaly"] == 1) & (labelled["event_label"] == "EXTREME")
+        (labelled["is_local_anomaly"] == 1) & (labelled["event_label"] == "EXTREME")
     ).astype(int)
     return labelled

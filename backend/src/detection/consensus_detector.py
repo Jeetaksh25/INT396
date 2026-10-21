@@ -97,6 +97,20 @@ def compute_consensus(features, matrix, reference_mask):
 
     result = features[["station_id", "sensor_name", "timestamp", "measured_value"]].copy()
     result["sensor_deviation"] = sensor_deviation.fillna(0.0)
+
+    anomaly_flags = pd.Series(is_anomaly, index=result.index)
+    group_key = result["station_id"].astype(str) + "|" + result["sensor_name"].astype(str)
+    deviation_threshold = config.NEIGHBOUR_DEVIATION_THRESHOLD
+    local_deviation = result["sensor_deviation"].abs()
+    local_flag = ((anomaly_flags == 1) & (local_deviation > deviation_threshold)).astype(int)
+    per_group_anomalies = anomaly_flags.groupby(group_key).transform("sum")
+    per_group_flagged = local_flag.groupby(group_key).transform("sum")
+    is_local_anomaly = np.where(
+        per_group_anomalies > 0,
+        (local_flag == 1) | (per_group_flagged == 0),
+        False,
+    )
+    result["is_local_anomaly"] = is_local_anomaly.astype(int)
     for score_name, scores in score_columns.items():
         result[score_name] = scores
     for vote_name, vote in vote_columns.items():
