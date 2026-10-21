@@ -56,7 +56,9 @@ def fit_lof_score(reference_matrix, full_matrix):
     return scores, labels
 
 
-def threshold_from_reference(scores, reference_mask, quantile=config.REFERENCE_QUANTILE):
+def threshold_from_reference(scores, reference_mask, quantile=None):
+    if quantile is None:
+        quantile = config.REFERENCE_QUANTILE
     reference_scores = scores[reference_mask]
     if len(reference_scores) == 0:
         reference_scores = scores

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T19:52:57.747228+00:00",
+  "generated_at": "2026-10-21T20:00:37.399409+00:00",
   "task": "Unsupervised sensor fault discovery with fault-versus-extreme separation",
   "supervision": {
     "training_labels_used": 0,
@@ -35,37 +35,39 @@
     "extreme_coverage": 0.043022
   },
   "consensus": {
-    "vote_threshold": 2,
+    "vote_threshold": 3,
     "vote_total": 5,
-    "reference_quantile": 0.99,
+    "reference_quantile": 0.995,
     "agreement_counts": {
-      "0": 263571,
-      "1": 13061,
-      "2": 2787,
-      "3": 679,
-      "4": 222
+      "0": 261359,
+      "1": 11588,
+      "2": 5708,
+      "3": 1369,
+      "4": 231,
+      "5": 65
     },
     "agreement_share": {
-      "0": 0.94025,
-      "1": 0.046593,
-      "2": 0.009942,
-      "3": 0.002422,
-      "4": 0.000792
+      "0": 0.932359,
+      "1": 0.041338,
+      "2": 0.020362,
+      "3": 0.004884,
+      "4": 0.000824,
+      "5": 0.000232
     },
     "pca_components": 9,
     "vote_thresholds": {
-      "kmeans_score": 8.082354622132558,
-      "dbscan_score": 1.0,
-      "pca_score": 7.992652298584285,
-      "isolation_score": 0.5630675640820728,
-      "lof_score": 1.7923003675576588
+      "kmeans_score": 11.070468411794652,
+      "dbscan_score": 0.5,
+      "pca_score": 12.839426730063789,
+      "isolation_score": 0.5979660036209904,
+      "lof_score": 2.050354039723844
     },
     "reference_vote_rates": {
-      "kmeans_vote": 0.010000475646879756,
-      "dbscan_vote": 0.0,
-      "pca_vote": 0.010000475646879756,
-      "isolation_vote": 0.010000475646879756,
-      "lof_vote": 0.010000475646879756
+      "kmeans_vote": 0.005006183409436834,
+      "dbscan_vote": 0.0448416095890411,
+      "pca_vote": 0.005006183409436834,
+      "isolation_vote": 0.005006183409436834,
+      "lof_vote": 0.005006183409436834
     }
   },
   "features": {
@@ -100,11 +102,11 @@
         "tolerance": 0.0001,
         "random_seed": 42
       },
-      "vote_rate": 0.0118,
-      "precision": 0.4515,
-      "recall": 0.0887,
-      "f1": 0.1483,
-      "fault_recall": 0.2735,
+      "vote_rate": 0.0067,
+      "precision": 0.4613,
+      "recall": 0.0512,
+      "f1": 0.0922,
+      "fault_recall": 0.1557,
       "score_mean": 2.2188,
       "score_p99": 9.156
     },
@@ -122,11 +124,11 @@
         "max_core_samples": 2500,
         "distance": "euclidean"
       },
-      "vote_rate": 0.0,
-      "precision": 0.0,
-      "recall": 0.0,
-      "f1": 0.0,
-      "fault_recall": 0.0,
+      "vote_rate": 0.0594,
+      "precision": 0.248,
+      "recall": 0.2445,
+      "f1": 0.2462,
+      "fault_recall": 0.6418,
       "score_mean": 0.0594,
       "score_p99": 1.0
     },
@@ -142,11 +144,11 @@
         "solver": "numpy.linalg.eigh on the covariance matrix",
         "centering": "reference-period mean"
       },
-      "vote_rate": 0.0127,
-      "precision": 0.2552,
-      "recall": 0.0539,
-      "f1": 0.089,
-      "fault_recall": 0.1244,
+      "vote_rate": 0.0058,
+      "precision": 0.3141,
+      "recall": 0.03,
+      "f1": 0.0548,
+      "fault_recall": 0.0785,
       "score_mean": 1.2314,
       "score_p99": 9.0834
     },
@@ -162,11 +164,11 @@
         "sub_sample_size": 256,
         "random_seed": 42
       },
-      "vote_rate": 0.0109,
-      "precision": 0.6867,
-      "recall": 0.1238,
-      "f1": 0.2097,
-      "fault_recall": 0.4092,
+      "vote_rate": 0.0052,
+      "precision": 0.9446,
+      "recall": 0.0808,
+      "f1": 0.1489,
+      "fault_recall": 0.2733,
       "score_mean": 0.4497,
       "score_p99": 0.567
     },
@@ -182,28 +184,28 @@
         "max_reference_samples": 12000,
         "novelty_mode": true
       },
-      "vote_rate": 0.0415,
-      "precision": 0.2262,
-      "recall": 0.1556,
-      "f1": 0.1844,
-      "fault_recall": 0.3506,
+      "vote_rate": 0.0242,
+      "precision": 0.2645,
+      "recall": 0.1061,
+      "f1": 0.1514,
+      "fault_recall": 0.2449,
       "score_mean": 1.21,
       "score_p99": 2.5485
     }
   ],
   "detector": {
-    "fault_detection_rate": 0.3933,
-    "fault_classification_rate": 0.2741,
-    "extreme_false_flag_rate": 0.0085,
+    "fault_detection_rate": 0.2086,
+    "fault_classification_rate": 0.1236,
+    "extreme_false_flag_rate": 0.0043,
     "precision_at_k": {
       "10": 1.0,
       "25": 1.0,
-      "50": 0.96
+      "50": 0.84
     },
-    "precision": 0.5296,
-    "recall": 0.3933,
-    "f1": 0.4514,
-    "false_positive_rate_clean": 0.0056
+    "precision": 0.6222,
+    "recall": 0.2086,
+    "f1": 0.3125,
+    "false_positive_rate_clean": 0.002
   },
   "baseline_range_check": {
     "fault_detection_rate": 0.2811,
@@ -220,17 +222,17 @@
     "false_positive_rate_clean": 0.0
   },
   "delta": {
-    "fault_detection_rate": 0.1122,
-    "extreme_false_flag_rate": -0.0048,
-    "precision": -0.4704,
-    "f1": 0.0125
+    "fault_detection_rate": -0.0725,
+    "extreme_false_flag_rate": -0.0006,
+    "precision": -0.3778,
+    "f1": -0.1264
   },
   "per_fault_type_recall": {
-    "bias": 0.5119,
-    "drift": 0.1137,
+    "bias": 0.343,
+    "drift": 0.0377,
     "stuck": 0.8057,
-    "spike": 0.6253,
-    "precision": 0.0414,
+    "spike": 0.2792,
+    "precision": 0.0125,
     "dropout": 1.0
   },
   "baseline_per_fault_type_recall": {
@@ -242,33 +244,32 @@
     "dropout": 1.0
   },
   "confusion": {
-    "fault_flagged": 1953,
+    "fault_flagged": 1036,
     "fault_total": 4966,
-    "extreme_flagged": 303,
+    "extreme_flagged": 130,
     "extreme_total": 12060,
-    "clean_flagged": 1485,
+    "clean_flagged": 522,
     "clean_total": 263426
   },
   "event_metrics": {
-    "event_count": 1203,
-    "fault_events": 1109,
-    "extreme_events": 29,
-    "clean_events": 65,
-    "fault_event_precision": 0.9982,
-    "extreme_event_precision": 0.0345,
+    "event_count": 548,
+    "fault_events": 493,
+    "extreme_events": 17,
+    "clean_events": 38,
+    "fault_event_precision": 0.9959,
+    "extreme_event_precision": 0.0588,
     "reason_code_counts": {
-      "physics_inconsistent": 795,
-      "isolated_sensor": 390,
-      "isolated_or_erratic": 11,
+      "physics_inconsistent": 451,
+      "isolated_sensor": 90,
       "coherent_multi_sensor": 6,
       "coherent_regional": 1
     }
   },
   "timing": {
-    "rules_seconds": 0.34,
-    "features_seconds": 0.66,
-    "detector_seconds": 98.81,
-    "discriminator_seconds": 2.37
+    "rules_seconds": 0.31,
+    "features_seconds": 0.58,
+    "detector_seconds": 104.01,
+    "discriminator_seconds": 1.87
   },
   "association_rules": {
     "rule_count": 14,
@@ -276,8 +277,8 @@
     "min_confidence": 0.55
   },
   "runtime": {
-    "detector_seconds": 98.81,
-    "discriminator_seconds": 2.37,
-    "features_seconds": 0.66
+    "detector_seconds": 104.01,
+    "discriminator_seconds": 1.87,
+    "features_seconds": 0.58
   }
 }
