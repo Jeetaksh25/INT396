@@ -33,6 +33,8 @@ TRAIN_FRACTION = 0.35
 
 TRAINED_BANK_PATH = config.RESULTS_DIR / "simulation_bank.pkl"
 
+BANK_VERSION = 3
+
 _lock = threading.Lock()
 
 _trained = {}
@@ -62,6 +64,7 @@ def train_bank(clean_wide, progress=None):
     bank["statistics"] = statistics
     bank["rules"] = rules
     bank["reference_rows"] = int(reference_mask.sum())
+    bank["version"] = BANK_VERSION
     return bank
 
 
@@ -79,8 +82,9 @@ def get_trained(progress=None):
             try:
                 with TRAINED_BANK_PATH.open("rb") as handle:
                     bank = pickle.load(handle)
-                _trained["bank"] = bank
-                return bank
+                if bank.get("version") == BANK_VERSION and "ensemble_threshold" in bank:
+                    _trained["bank"] = bank
+                    return bank
             except Exception:
                 pass
 

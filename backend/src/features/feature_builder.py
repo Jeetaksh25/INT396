@@ -241,6 +241,14 @@ def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
 
         for sensor_name in config.SENSORS:
             values = station_frame[sensor_name].astype(float)
+            long_mean = values.rolling(720, min_periods=168).mean()
+            long_std = values.rolling(720, min_periods=168).std().replace(0.0, np.nan)
+            long_baseline_z = ((values - long_mean) / long_std).abs()
+
+            recent_mean = values.rolling(24, min_periods=12).mean()
+            older_mean = values.shift(168).rolling(24, min_periods=12).mean()
+            trend_168h = ((recent_mean - older_mean).abs() / long_std).fillna(0.0)
+
             block = pd.DataFrame(
                 {
                     "value_standardized": standardized_by_sensor[sensor_name],
@@ -259,6 +267,8 @@ def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
                     "rule_violation_count": association_violations.astype(float),
                     "physics_violation_count": violations.astype(float),
                     "missing_reading": values.isna().astype(float),
+                    "long_baseline_z": long_baseline_z,
+                    "trend_168h": trend_168h,
                 }
             )
             block["station_id"] = station_id

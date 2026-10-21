@@ -718,8 +718,9 @@ function RunReport({ result }: { result: SimResult }) {
         <div className="card card-pad">
           <h3 className="card-title">Where the replay landed</h3>
           <p className="card-caption">
-            The replay is weighted toward flagged readings so every lane is visible. Shares below
-            describe that replay; the window-wide rates are in the cards above.
+            Replay shares: 60% clean / 22% fault / 18% extreme, so every lane stays visible.
+            Window prevalence is {(100 * (result.counts.clean_readings / result.counts.readings)).toFixed(0)}%
+            clean — the real rates are in the cards above.
           </p>
           <div className="sim-truth-list">
             {truthRows.map((row) => {
@@ -735,6 +736,30 @@ function RunReport({ result }: { result: SimResult }) {
                   </div>
                   <div className="sim-truth-track">
                     <span className="sim-truth-fill" style={{ width: `${share}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="card card-pad">
+          <h3 className="card-title">Recall by class</h3>
+          <p className="card-caption">Whole window, straight from the detector.</p>
+          <div className="sim-truth-list">
+            {(["fault", "extreme", "clean"] as const).map((key) => {
+              const block = result.per_class[key];
+              const token = key === "fault" ? "fault" : key === "extreme" ? "extreme" : "healthy";
+              return (
+                <div key={key} className="sim-truth" data-token={token}>
+                  <div className="sim-truth-head">
+                    <span style={{ textTransform: "capitalize" }}>{key}</span>
+                    <span className="num">
+                      {(block.recall * 100).toFixed(0)}% <em className="sim-truth-base">P {(block.precision * 100).toFixed(0)}%</em>
+                    </span>
+                  </div>
+                  <div className="sim-truth-track">
+                    <span className="sim-truth-fill" style={{ width: `${block.recall * 100}%` }} />
                   </div>
                 </div>
               );
