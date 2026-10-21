@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-21T20:00:37.399409+00:00",
+  "generated_at": "2026-10-21T20:03:25.124780+00:00",
   "random_seed": 42,
   "dataset": {
     "stations": [
@@ -24,18 +24,18 @@
     "source": "Open-Meteo Historical Weather API (ERA5)"
   },
   "detector": {
-    "fault_detection_rate": 0.2086,
-    "fault_classification_rate": 0.1236,
-    "extreme_false_flag_rate": 0.0043,
+    "fault_detection_rate": 0.3933,
+    "fault_classification_rate": 0.2741,
+    "extreme_false_flag_rate": 0.0085,
     "precision_at_k": {
       "10": 1.0,
-      "25": 1.0,
-      "50": 0.84
+      "25": 0.96,
+      "50": 0.92
     },
-    "precision": 0.6222,
-    "recall": 0.2086,
-    "f1": 0.3125,
-    "false_positive_rate_clean": 0.002
+    "precision": 0.5296,
+    "recall": 0.3933,
+    "f1": 0.4514,
+    "false_positive_rate_clean": 0.0056
   },
   "baseline_range_check": {
     "fault_detection_rate": 0.2811,
@@ -52,17 +52,17 @@
     "false_positive_rate_clean": 0.0
   },
   "delta": {
-    "fault_detection_rate": -0.0725,
-    "extreme_false_flag_rate": -0.0006,
-    "precision": -0.3778,
-    "f1": -0.1264
+    "fault_detection_rate": 0.1122,
+    "extreme_false_flag_rate": -0.0048,
+    "precision": -0.4704,
+    "f1": 0.0125
   },
   "per_fault_type_recall": {
-    "bias": 0.343,
-    "drift": 0.0377,
+    "bias": 0.5119,
+    "drift": 0.1137,
     "stuck": 0.8057,
-    "spike": 0.2792,
-    "precision": 0.0125,
+    "spike": 0.6253,
+    "precision": 0.0414,
     "dropout": 1.0
   },
   "baseline_per_fault_type_recall": {
@@ -75,50 +75,50 @@
   },
   "per_station": {
     "DEL": {
-      "fault_detection_rate": 0.46534653465346537,
-      "false_positive_rate_clean": 0.004470026330292083,
+      "fault_detection_rate": 0.5148514851485149,
+      "false_positive_rate_clean": 0.011573081868838405,
       "fault_readings": 505,
       "extreme_readings": 1884
     },
     "BOM": {
       "fault_detection_rate": 0.1130952380952381,
-      "false_positive_rate_clean": 0.0004366049598323437,
+      "false_positive_rate_clean": 0.0009605309116311561,
       "fault_readings": 168,
       "extreme_readings": 516
     },
     "MAA": {
-      "fault_detection_rate": 0.5046728971962616,
-      "false_positive_rate_clean": 0.0011756549000693335,
+      "fault_detection_rate": 0.7962616822429907,
+      "false_positive_rate_clean": 0.0071142193952913515,
       "fault_readings": 535,
       "extreme_readings": 1344
     },
     "HYD": {
-      "fault_detection_rate": 0.23615160349854228,
-      "false_positive_rate_clean": 0.005449676133532636,
+      "fault_detection_rate": 0.4013605442176871,
+      "false_positive_rate_clean": 0.017407822620827105,
       "fault_readings": 1029,
       "extreme_readings": 1932
     },
     "JAI": {
-      "fault_detection_rate": 0.04065040650406504,
+      "fault_detection_rate": 0.3089430894308943,
       "false_positive_rate_clean": 0.000334580405754783,
       "fault_readings": 492,
       "extreme_readings": 1680
     },
     "CCU": {
-      "fault_detection_rate": 0.13043478260869565,
-      "false_positive_rate_clean": 0.0013806645598748197,
+      "fault_detection_rate": 0.3824312333629104,
+      "false_positive_rate_clean": 0.0043567637222716536,
       "fault_readings": 1127,
       "extreme_readings": 1328
     },
     "BLR": {
-      "fault_detection_rate": 0.17647058823529413,
-      "false_positive_rate_clean": 0.0008938203112960394,
+      "fault_detection_rate": 0.23202614379084968,
+      "false_positive_rate_clean": 0.0009246417013407304,
       "fault_readings": 306,
       "extreme_readings": 2344
     },
     "SLM": {
-      "fault_detection_rate": 0.05970149253731343,
-      "false_positive_rate_clean": 0.0018670199951818839,
+      "fault_detection_rate": 0.22512437810945274,
+      "false_positive_rate_clean": 0.002890869669959046,
       "fault_readings": 804,
       "extreme_readings": 1032
     }
@@ -129,41 +129,42 @@
     "extreme_readings": 12060
   },
   "confusion": {
-    "fault_flagged": 1036,
+    "fault_flagged": 1953,
     "fault_total": 4966,
-    "extreme_flagged": 130,
+    "extreme_flagged": 303,
     "extreme_total": 12060,
-    "clean_flagged": 522,
+    "clean_flagged": 1485,
     "clean_total": 263426
   },
   "event_metrics": {
-    "event_count": 548,
-    "fault_events": 493,
-    "extreme_events": 17,
-    "clean_events": 38,
-    "fault_event_precision": 0.9959,
-    "extreme_event_precision": 0.0588,
+    "event_count": 1203,
+    "fault_events": 1109,
+    "extreme_events": 29,
+    "clean_events": 65,
+    "fault_event_precision": 0.9982,
+    "extreme_event_precision": 0.0345,
     "reason_code_counts": {
-      "physics_inconsistent": 451,
-      "isolated_sensor": 90,
+      "physics_inconsistent": 795,
+      "isolated_sensor": 390,
+      "isolated_or_erratic": 11,
       "coherent_multi_sensor": 6,
       "coherent_regional": 1
     }
   },
   "diagnostics": {
     "vote_thresholds": {
-      "kmeans_score": 11.070468411794652,
+      "kmeans_score": 8.082354622132558,
       "dbscan_score": 0.5,
-      "pca_score": 12.839426730063789,
-      "isolation_score": 0.5979660036209904,
-      "lof_score": 2.050354039723844
+      "pca_score": 7.992652298584285,
+      "isolation_score": 0.5630675640820728,
+      "lof_score": 1.7923003675576588
     },
     "vote_rates_reference": {
-      "kmeans_vote": 0.005006183409436834,
+      "kmeans_vote": 0.010000475646879756,
       "dbscan_vote": 0.0448416095890411,
-      "pca_vote": 0.005006183409436834,
-      "isolation_vote": 0.005006183409436834,
-      "lof_vote": 0.005006183409436834
+      "pca_vote": 0.010000475646879756,
+      "isolation_vote": 0.010000475646879756,
+      "lof_vote": 0.010000475646879756
     },
     "pca_components": 9,
     "dbscan_noise_percent": 5.939640410958904,
@@ -173,9 +174,9 @@
   },
   "timing": {
     "rules_seconds": 0.31,
-    "features_seconds": 0.58,
-    "detector_seconds": 104.01,
-    "discriminator_seconds": 1.87
+    "features_seconds": 0.57,
+    "detector_seconds": 104.96,
+    "discriminator_seconds": 2.39
   },
   "rule_count": 14,
   "feature_columns": [

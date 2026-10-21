@@ -1,7 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { createContext, useContext, useEffect, useState } from "react";
 import gsap from "gsap";
 import type Lenis from "lenis";
 
@@ -22,8 +21,6 @@ export function useMotion() {
 export function MotionProvider({ children }: { children: React.ReactNode }) {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [lenis, setLenis] = useState<Lenis | null>(null);
-  const pathname = usePathname();
-  const firstRender = useRef(true);
 
   useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -66,18 +63,6 @@ export function MotionProvider({ children }: { children: React.ReactNode }) {
       query.removeEventListener("change", applyPreference);
     };
   }, []);
-
-  useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
-    if (lenis) {
-      lenis.scrollTo(0, { immediate: true });
-    } else {
-      window.scrollTo(0, 0);
-    }
-  }, [pathname, lenis]);
 
   const scrollTo = (target: number | string, offset = 0) => {
     if (lenis) {

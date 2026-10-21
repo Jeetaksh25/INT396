@@ -5,12 +5,12 @@
     "latitude": 28.61,
     "longitude": 77.21,
     "status": "FAULT",
-    "fault_events": 2,
+    "fault_events": 4,
     "extreme_events": 0,
-    "anomalous_percent": 5.92,
+    "anomalous_percent": 7.99,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "physics_inconsistent",
-    "total_events": 159,
+    "total_events": 201,
     "window_hours": 168
   },
   {
@@ -33,12 +33,12 @@
     "latitude": 13.08,
     "longitude": 80.27,
     "status": "FAULT",
-    "fault_events": 1,
+    "fault_events": 6,
     "extreme_events": 0,
-    "anomalous_percent": 0.3,
+    "anomalous_percent": 1.63,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "physics_inconsistent",
-    "total_events": 124,
+    "total_events": 244,
     "window_hours": 168
   },
   {
@@ -47,12 +47,12 @@
     "latitude": 17.38,
     "longitude": 78.48,
     "status": "FAULT",
-    "fault_events": 2,
+    "fault_events": 5,
     "extreme_events": 0,
-    "anomalous_percent": 0.59,
+    "anomalous_percent": 1.48,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "physics_inconsistent",
-    "total_events": 157,
+    "total_events": 259,
     "window_hours": 168
   },
   {
@@ -66,7 +66,7 @@
     "anomalous_percent": 0.3,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "isolated_sensor",
-    "total_events": 12,
+    "total_events": 111,
     "window_hours": 168
   },
   {
@@ -74,13 +74,13 @@
     "station_name": "Kolkata",
     "latitude": 22.57,
     "longitude": 88.36,
-    "status": "HEALTHY",
-    "fault_events": 0,
+    "status": "FAULT",
+    "fault_events": 4,
     "extreme_events": 0,
-    "anomalous_percent": 0.0,
+    "anomalous_percent": 1.04,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "isolated_sensor",
-    "total_events": 62,
+    "total_events": 242,
     "window_hours": 168
   },
   {
@@ -94,7 +94,7 @@
     "anomalous_percent": 0.59,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "isolated_sensor",
-    "total_events": 7,
+    "total_events": 6,
     "window_hours": 168
   },
   {
@@ -102,13 +102,13 @@
     "station_name": "Shimla",
     "latitude": 31.1,
     "longitude": 77.17,
-    "status": "HEALTHY",
-    "fault_events": 0,
+    "status": "FAULT",
+    "fault_events": 1,
     "extreme_events": 0,
-    "anomalous_percent": 0.0,
+    "anomalous_percent": 0.15,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "physics_inconsistent",
-    "total_events": 11,
+    "total_events": 124,
     "window_hours": 168
   }
 ]

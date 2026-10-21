@@ -88,6 +88,24 @@ scores recorded in `results/detections.csv` allow it: each of the five columns
 independently. The consensus exists because the models disagree in useful ways — DBSCAN flags 22.6%
 of readings as noise on its own, which alone would be unusable.
 
+## The extreme-coverage finding
+
+Only 303 of 12,060 extreme readings are flagged as anomalous at all (2.5%). This is not a defect in
+the discriminator — of the readings that *are* flagged during an extreme, 99.15% avoid a false FAULT
+verdict. The cause is upstream: a coherent heat wave sits inside the normal range of that station's
+own seasonal distribution, so a detector calibrated on "distance from normal" has little reason to
+fire.
+
+That is a genuine and interesting result, and it points at the real weakness of range-and-distance
+methods for extremes: they look for *unusual*, while an extreme is often *unusually ordinary*. A
+direction for future work is conditioning the reference distribution on neighbourhood state rather
+than on the station's own history.
+
+Lowering the vote threshold to 2 raises fault recall from 0.393 to 0.600, and raises extreme flagging
+too, but precision falls from 0.53 to 0.27 and F1 drops below the baseline (0.375 vs 0.439). Threshold
+3 is therefore the defensible operating point: it beats the baseline on F1 while keeping the clean
+alarm rate under 0.6%.
+
 ## Honest limitations
 
 1. Faults and extremes are synthetic. Real failure logs are not public, so magnitudes are authored and

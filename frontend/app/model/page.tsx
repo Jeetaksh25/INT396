@@ -4,7 +4,7 @@ import { getModelCard } from "@/lib/api";
 import { ModelCard, ModelSpec } from "@/lib/types";
 import { PageHead, Section, KvList, Callout, StepList, TickedNumber } from "@/components/page-parts";
 import { TopBar } from "@/components/top-bar";
-import { RecallBars, FlagRateBars, VoteDistribution } from "@/components/charts";
+import { RecallBars, FlagRateBars } from "@/components/charts";
 import { BlurFade } from "@/components/ui/blur-fade";
 
 const percent = (value: number, digits = 1) => `${(value * 100).toFixed(digits)}%`;
@@ -224,18 +224,44 @@ export default async function ModelPage() {
                 <div>
                   <h3 className="card-title">Vote distribution</h3>
                   <p className="card-caption">
-                    share of readings by number of detectors that agree
+                    share of readings by how many detectors agree
                   </p>
                 </div>
                 <span className="chip" data-tone="neutral">
                   threshold {consensus.vote_threshold} of {consensus.vote_total}
                 </span>
               </div>
-              <div style={{ padding: "0.75rem 0.5rem 0.5rem" }}>
-                <VoteDistribution
-                  agreementShare={consensus.agreement_share}
-                  threshold={consensus.vote_threshold}
-                />
+              <div style={{ padding: "0.5rem 1.25rem 1.25rem" }}>
+                {Object.entries(consensus.agreement_share).map(([votes, share]) => {
+                  const flagged = Number(votes) >= consensus.vote_threshold;
+                  return (
+                    <div className="meter" key={votes}>
+                      <div className="meter-head">
+                        <span className="meter-name">
+                          {votes} {Number(votes) === 1 ? "vote" : "votes"}
+                          <span
+                            className="chip"
+                            data-tone={flagged ? "accent" : "neutral"}
+                            style={{ marginLeft: "0.45rem" }}
+                          >
+                            {flagged ? "anomaly" : "normal"}
+                          </span>
+                        </span>
+                        <span className="meter-value">{percent(share, 3)}</span>
+                      </div>
+                      <div className="meter-track">
+                        <div
+                          className="meter-fill"
+                          data-tone={flagged ? undefined : "baseline"}
+                          style={{
+                            width: `${Math.max((share / Math.max(...Object.values(consensus.agreement_share))) * 100, share > 0 ? 1.5 : 0)}%`,
+                            height: "100%",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </BlurFade>

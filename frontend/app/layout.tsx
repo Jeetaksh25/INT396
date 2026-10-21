@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { RailNav } from "@/components/rail-nav";
 import { MotionProvider } from "@/components/motion";
+import { ScrollReset } from "@/components/scroll-reset";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const bodyFont = Geist({
@@ -43,6 +44,7 @@ export default function RootLayout({
       <body className={`${bodyFont.variable} ${displayFont.variable} ${monoFont.variable}`}>
         <MotionProvider>
           <TooltipProvider delayDuration={220}>
+            <ScrollReset />
             <div className="grain" aria-hidden="true" />
             <div className="shell">
               <RailNav />

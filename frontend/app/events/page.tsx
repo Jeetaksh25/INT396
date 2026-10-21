@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getEvents } from "@/lib/api";
 import { EventRecord } from "@/lib/types";
-import { VerdictBadge } from "@/components/badges";
+import { EventTable } from "@/components/event-table";
 import { PageHead, Section, TickedNumber } from "@/components/page-parts";
 import { TopBar } from "@/components/top-bar";
 import { BlurFade } from "@/components/ui/blur-fade";
@@ -20,7 +20,7 @@ export default async function EventsPage() {
   let error: string | null = null;
 
   try {
-    const response = await getEvents(400);
+    const response = await getEvents(1000);
     events = response.events;
   } catch (caught) {
     error = caught instanceof Error ? caught.message : "unknown error";
@@ -166,53 +166,11 @@ export default async function EventsPage() {
             </div>
           </Section>
 
-          <Section title="Episodes" note="Most recent first.">
-            <BlurFade delay={0.02} duration={0.6} offset={16}>
-              <div className="card-flat">
-                <div className="table-wrap">
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Event</th>
-                        <th>Station</th>
-                        <th>Sensor</th>
-                        <th>Start</th>
-                        <th style={{ textAlign: "right" }}>Hours</th>
-                        <th>Verdict</th>
-                        <th>Reason</th>
-                        <th style={{ textAlign: "right" }}>Neighbour</th>
-                        <th style={{ textAlign: "right" }}>Score</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {events.map((event) => (
-                        <tr key={event.event_id}>
-                          <td className="cell-muted">{event.event_id}</td>
-                          <td>
-                            <Link href={`/stations/${event.station_id}`} className="row-link">
-                              {event.station_id}
-                            </Link>
-                          </td>
-                          <td>{event.sensor_name.replace("_", " ")}</td>
-                          <td>{event.start.slice(0, 16).replace("T", " ")}</td>
-                          <td style={{ textAlign: "right" }}>{event.duration_hours}</td>
-                          <td>
-                            <VerdictBadge label={event.label} />
-                          </td>
-                          <td className="cell-muted">{event.reason_code.replace(/_/g, " ")}</td>
-                          <td style={{ textAlign: "right" }}>
-                            {event.neighbour_agreement.toFixed(2)}
-                          </td>
-                          <td style={{ textAlign: "right" }}>
-                            {event.mean_anomaly_score.toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </BlurFade>
+          <Section
+            title="Episodes"
+            note="Filter by verdict, or search a station, sensor or reason code."
+          >
+            <EventTable events={events} />
           </Section>
         </>
       )}

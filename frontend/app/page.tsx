@@ -36,11 +36,7 @@ function HeroBand({
     <div className="hero-band">
       <div>
         <BlurFade delay={0.02} duration={0.6} offset={16}>
-          <h1 className="page-title-lg">
-            Which instruments are
-            <br />
-            lying to you?
-          </h1>
+          <h1 className="page-title-lg">Which instruments are lying to you?</h1>
         </BlurFade>
         <BlurFade delay={0.08} duration={0.6} offset={14}>
           <p className="page-sub" style={{ maxWidth: "48ch" }}>
@@ -139,8 +135,6 @@ export default async function HomePage() {
           format="percent"
           decimals={2}
           suffix="%"
-          delta={-metrics.delta.extreme_false_flag_rate}
-          deltaInvert
           caption={`baseline ${percent(metrics.baseline_range_check.extreme_false_flag_rate, 2)}`}
           delay={0.06}
         />
@@ -158,8 +152,6 @@ export default async function HomePage() {
           format="percent"
           decimals={2}
           suffix="%"
-          delta={metrics.detector.false_positive_rate_clean}
-          deltaInvert
           caption="of healthy readings"
           delay={0.14}
         />

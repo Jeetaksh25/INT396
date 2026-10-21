@@ -66,7 +66,14 @@ export function NetworkTimeline({ points }: { points: TimelinePoint[] }) {
             minTickGap={46}
             dy={6}
           />
-          <YAxis tick={axisTick} tickLine={false} axisLine={false} width={44} />
+          <YAxis
+            tick={axisTick}
+            tickLine={false}
+            axisLine={false}
+            width={44}
+            domain={[0, "dataMax + 1"]}
+            allowDecimals={false}
+          />
           <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: "var(--hairline-strong)" }} />
           <Area
             type="monotone"
@@ -139,19 +146,8 @@ export function SensorLineChart({
             tick={axisTick}
             tickLine={false}
             axisLine={false}
-            width={52}
+            width={48}
             domain={["auto", "auto"]}
-            label={
-              unit
-                ? {
-                    value: unit,
-                    angle: -90,
-                    position: "insideLeft",
-                    offset: 18,
-                    style: { fontSize: 10, fill: ink },
-                  }
-                : undefined
-            }
           />
           <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: "var(--hairline-strong)" }} />
           <Line
@@ -200,6 +196,11 @@ export function VoteDistribution({
     percent: Number((share * 100).toFixed(3)),
     flagged: Number(votes) >= threshold,
   }));
+  const peak = Math.max(...data.map((entry) => entry.percent), 1);
+  const axisMax = Math.max(5, Math.ceil(peak / 5) * 5);
+  const axisTicks = [0, axisMax / 4, axisMax / 2, (axisMax * 3) / 4, axisMax].map((value) =>
+    Number(value.toFixed(2)),
+  );
 
   return (
     <div className="chart-frame-sm">
@@ -219,13 +220,18 @@ export function VoteDistribution({
               style: { fontSize: 10, fill: ink },
             }}
           />
-          <YAxis tick={axisTick} tickLine={false} axisLine={false} width={46} unit="%" />
-          <Tooltip
-            contentStyle={tooltipStyle}
-            cursor={{ fill: "var(--surface-sunken)" }}
+          <YAxis
+            tick={axisTick}
+            tickLine={false}
+            axisLine={false}
+            width={46}
+            domain={[0, axisMax]}
+            ticks={axisTicks}
+            tickFormatter={(value: number) => `${value}%`}
           />
+          <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "var(--surface-sunken)" }} />
           <ReferenceLine x={String(threshold)} stroke="var(--accent)" strokeDasharray="4 3" />
-          <Bar dataKey="percent" radius={[6, 6, 0, 0]} maxBarSize={54}>
+          <Bar dataKey="percent" name="share of readings" radius={[6, 6, 0, 0]} maxBarSize={54}>
             {data.map((entry) => (
               <Cell
                 key={entry.votes}
@@ -266,7 +272,15 @@ export function RecallBars({
             dy={6}
             interval={0}
           />
-          <YAxis tick={axisTick} tickLine={false} axisLine={false} width={44} unit="%" />
+          <YAxis
+            tick={axisTick}
+            tickLine={false}
+            axisLine={false}
+            width={44}
+            domain={[0, 100]}
+            ticks={[0, 25, 50, 75, 100]}
+            tickFormatter={(value: number) => `${value}%`}
+          />
           <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "var(--surface-sunken)" }} />
           <Bar
             dataKey="detector"
@@ -328,7 +342,14 @@ export function FlagRateBars({
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -22 }}>
           <CartesianGrid stroke="var(--hairline)" strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="name" tick={axisTick} tickLine={false} axisLine={false} dy={6} />
-          <YAxis tick={axisTick} tickLine={false} axisLine={false} width={46} unit="%" />
+          <YAxis
+            tick={axisTick}
+            tickLine={false}
+            axisLine={false}
+            width={46}
+            domain={[0, Math.max(5, Math.ceil(Math.max(...data.map((entry) => entry.rate)) / 5) * 5)]}
+            tickFormatter={(value: number) => `${value}%`}
+          />
           <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "var(--surface-sunken)" }} />
           <Bar dataKey="rate" radius={[6, 6, 0, 0]} maxBarSize={64}>
             {data.map((entry) => (

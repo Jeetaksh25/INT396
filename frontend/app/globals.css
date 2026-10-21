@@ -178,10 +178,11 @@ button {
 
 .mono-label {
   font-family: var(--font-body), "Helvetica Neue", Arial, sans-serif;
-  font-size: var(--text-micro);
+  font-size: var(--text-xs);
   font-weight: 500;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   color: var(--ink-3);
+  text-transform: none;
 }
 
 .shell {
@@ -250,10 +251,12 @@ button {
 }
 
 .rail-caption {
-  font-size: var(--text-micro);
+  font-size: var(--text-xs);
+  font-weight: 500;
   color: var(--ink-4);
   padding: 0 var(--space-xs);
   margin-bottom: var(--space-3xs);
+  letter-spacing: 0;
 }
 
 .rail-link {
@@ -400,9 +403,11 @@ button {
 }
 
 .page-title-lg {
-  font-size: var(--text-hero);
+  font-size: clamp(2.5rem, 4.6vw, 4rem);
   letter-spacing: -0.045em;
-  line-height: 0.96;
+  line-height: 0.98;
+  max-width: 15ch;
+  text-wrap: balance;
 }
 
 .page-sub {
@@ -488,6 +493,20 @@ button {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14.5rem, 1fr));
   gap: var(--space-md);
+}
+
+.metric-compact {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.metric-compact .metric-value {
+  font-size: 1.6rem;
 }
 
 .metric {
@@ -822,7 +841,7 @@ button {
 }
 
 .chart-frame-lg {
-  height: 340px;
+  height: 300px;
   min-width: 0;
   width: 100%;
 }
@@ -1240,8 +1259,8 @@ button {
 
 .hero-band {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  gap: var(--space-xl);
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: var(--space-2xl);
   align-items: end;
   padding-bottom: var(--space-xl);
   border-bottom: 1px solid var(--hairline);
@@ -1370,6 +1389,19 @@ button {
 @media (max-width: 620px) {
   .metric-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm) var(--space-md);
+  }
+
+  .hero-stat-value {
+    font-size: 1.35rem;
+  }
+
+  .hero-band {
+    gap: var(--space-lg);
   }
 
   .metric-value {
