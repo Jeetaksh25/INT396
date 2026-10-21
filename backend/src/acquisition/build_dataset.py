@@ -14,7 +14,7 @@ def load_station_frame(station_id):
     frame = frame.reindex(hourly_index)
     frame.index.name = "timestamp"
     for sensor_name in sensor_columns:
-        frame[sensor_name] = pd.to_numeric(frame[sensor_name], errors="coerce")
+        frame[sensor_name] = pd.to_numeric(frame[sensor_name], errors="coerce").astype(float)
         frame[sensor_name] = frame[sensor_name].interpolate(
             method="linear",
             limit=config.MAX_INTERPOLATION_GAP_HOURS,
