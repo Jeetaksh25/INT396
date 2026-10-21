@@ -210,17 +210,19 @@ def classify_all_events(detections, feature_frame):
 
 
 def apply_event_labels(detection_frame, events_frame):
-    labelled = detection_frame.copy()
-    labelled["event_label"] = None
-    labelled["reason_code"] = None
+    labelled = detection_frame.copy().reset_index(drop=True)
+    label_values = np.full(len(labelled), None, dtype=object)
+    reason_values = np.full(len(labelled), None, dtype=object)
 
     if len(events_frame) == 0:
-        labelled["is_fault_flagged"] = 0
-        labelled["is_extreme_flagged"] = 0
+        labelled["event_label"] = label_values
+        labelled["reason_code"] = reason_values
+        labelled["is_fault_flagged"] = np.zeros(len(labelled), dtype=int)
+        labelled["is_extreme_flagged"] = np.zeros(len(labelled), dtype=int)
         return labelled
 
     flagged = labelled[labelled["is_local_anomaly"] == 1].copy()
-    flagged = flagged.sort_values(["station_id", "sensor_name", "timestamp"]).reset_index(drop=True)
+    flagged = flagged.sort_values(["station_id", "sensor_name", "timestamp"]).reset_index(drop=False)
     time_gap = flagged.groupby(["station_id", "sensor_name"])["timestamp"].diff()
     new_event = time_gap.isna() | (time_gap > pd.Timedelta(hours=config.EVENT_MERGE_GAP_HOURS))
     flagged["event_number"] = new_event.groupby(
@@ -233,12 +235,17 @@ def apply_event_labels(detection_frame, events_frame):
         + "-"
         + flagged["event_number"].astype(int).astype(str)
     )
-    lookup = events_frame.set_index("event_id")[["label", "reason_code"]]
-    mapped = flagged["event_id"].map(lookup["label"])
-    mapped_reason = flagged["event_id"].map(lookup["reason_code"])
 
-    labelled.loc[flagged.index, "event_label"] = mapped.to_numpy()
-    labelled.loc[flagged.index, "reason_code"] = mapped_reason.to_numpy()
+    lookup = events_frame.set_index("event_id")[["label", "reason_code"]]
+    labels = flagged["event_id"].map(lookup["label"]).to_numpy()
+    reasons = flagged["event_id"].map(lookup["reason_code"]).to_numpy()
+    positions = flagged["index"].to_numpy()
+
+    label_values[positions] = labels
+    reason_values[positions] = reasons
+
+    labelled["event_label"] = label_values
+    labelled["reason_code"] = reason_values
     labelled["is_fault_flagged"] = (
         (labelled["is_local_anomaly"] == 1) & (labelled["event_label"] == "FAULT")
     ).astype(int)
