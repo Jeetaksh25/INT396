@@ -88,3 +88,18 @@ cd backend
 python -m tests.test_algorithms
 python -m tests.test_metrics
 ```
+
+## Troubleshooting
+
+**Port already in use.** `run.bat` checks ports 8000 and 3000 and automatically falls back to 8010
+and 3010, printing the URLs it actually used.
+
+**"Another next dev server is already running".** Next.js 16 allows only one dev server per project
+directory. Close the other server window, or run `taskkill /F /IM node.exe` if it is orphaned.
+
+**Dashboard shows "Backend results are not reachable".** The API must be running before the page is
+loaded. It reads pre-computed files from `backend/results/`, so the pipeline has to have been run at
+least once.
+
+**Regenerating results.** Delete `backend/results/metrics_summary.json` and run `run.bat`, or run the
+pipeline manually (see above).
