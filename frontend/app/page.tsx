@@ -35,10 +35,10 @@ function HeroBand({
   return (
     <div className="hero-band">
       <div>
-        <BlurFade delay={0.02} duration={0.6} offset={16}>
+        <BlurFade delay={0.02} duration={0.32} offset={16}>
           <h1 className="page-title-lg">Which instruments are lying to you?</h1>
         </BlurFade>
-        <BlurFade delay={0.08} duration={0.6} offset={14}>
+        <BlurFade delay={0.08} duration={0.32} offset={14}>
           <p className="page-sub" style={{ maxWidth: "48ch" }}>
             Eight Indian weather stations, one year of hourly ERA5 readings, five unsupervised
             detectors in consensus — and a rule tree that separates a broken sensor from a real heat
@@ -161,7 +161,7 @@ export default async function HomePage() {
         title="Network activity"
         note="Flagged readings across all eight stations, aggregated by day. Switch to 7 days for the hourly view."
       >
-        <BlurFade delay={0.02} duration={0.6} offset={16}>
+        <BlurFade delay={0.02} duration={0.32} offset={16}>
           <div className="card card-pad">
             <NetworkTimeline points={points} days={30} />
           </div>
@@ -178,7 +178,7 @@ export default async function HomePage() {
           </Link>
         }
       >
-        <BlurFade delay={0.02} duration={0.6} offset={16}>
+        <BlurFade delay={0.02} duration={0.32} offset={16}>
           <div className="card-flat">
             <div className="table-wrap">
               <table className="table">
@@ -253,7 +253,7 @@ export default async function HomePage() {
               body: "Every detector, its hyperparameters, its per-model score and the leakage guard.",
             },
           ].map((item, index) => (
-            <BlurFade key={item.href} delay={index * 0.05} duration={0.6} offset={14}>
+            <BlurFade key={item.href} delay={index * 0.05} duration={0.32} offset={14}>
               <Link href={item.href} className="card card-pad" style={{ display: "block" }}>
                 <div
                   style={{
@@ -276,7 +276,7 @@ export default async function HomePage() {
       </Section>
 
       <Section title="Read this before quoting a number" note="The honest caveats, stated up front.">
-        <BlurFade delay={0.02} duration={0.6} offset={14}>
+        <BlurFade delay={0.02} duration={0.32} offset={14}>
           <div className="card card-pad">
             <div className="note-list">
               <p>

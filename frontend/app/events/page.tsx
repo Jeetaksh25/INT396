@@ -61,7 +61,7 @@ export default async function EventsPage() {
       ) : (
         <>
           <div className="metric-grid">
-            <BlurFade delay={0.02} duration={0.6} offset={14}>
+            <BlurFade delay={0.02} duration={0.32} offset={14}>
               <div className="metric">
                 <div className="metric-top">
                   <span className="metric-label">Episodes grouped</span>
@@ -74,7 +74,7 @@ export default async function EventsPage() {
                 </div>
               </div>
             </BlurFade>
-            <BlurFade delay={0.06} duration={0.6} offset={14}>
+            <BlurFade delay={0.06} duration={0.32} offset={14}>
               <div className="metric">
                 <div className="metric-top">
                   <span className="metric-label">Fault verdicts</span>
@@ -90,7 +90,7 @@ export default async function EventsPage() {
                 </div>
               </div>
             </BlurFade>
-            <BlurFade delay={0.1} duration={0.6} offset={14}>
+            <BlurFade delay={0.1} duration={0.32} offset={14}>
               <div className="metric">
                 <div className="metric-top">
                   <span className="metric-label">Extreme verdicts</span>
@@ -106,7 +106,7 @@ export default async function EventsPage() {
                 </div>
               </div>
             </BlurFade>
-            <BlurFade delay={0.14} duration={0.6} offset={14}>
+            <BlurFade delay={0.14} duration={0.32} offset={14}>
               <div className="metric">
                 <div className="metric-top">
                   <span className="metric-label">Distinct reason codes</span>
@@ -123,7 +123,7 @@ export default async function EventsPage() {
 
           <Section title="Verdict distribution" note="Which branch of the rule tree fired.">
             <div className="split">
-              <BlurFade delay={0.02} duration={0.6} offset={16}>
+              <BlurFade delay={0.02} duration={0.32} offset={16}>
                 <div className="card card-pad">
                   <div className="meter-list">
                     {reasonCounts.map(([reason, count]) => {
@@ -161,7 +161,7 @@ export default async function EventsPage() {
                 </div>
               </BlurFade>
 
-              <BlurFade delay={0.06} duration={0.6} offset={16}>
+              <BlurFade delay={0.06} duration={0.32} offset={16}>
                 <div className="card card-pad">
                   <h3 className="card-title" style={{ marginBottom: "0.6rem" }}>
                     What each code means

@@ -66,8 +66,8 @@
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --dur-fast: 140ms;
-  --dur-mid: 260ms;
-  --dur-slow: 620ms;
+  --dur-mid: 200ms;
+  --dur-slow: 420ms;
 
   --rail: 15.5rem;
   --content-max: 1440px;

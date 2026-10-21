@@ -55,7 +55,7 @@ export default async function StationsPage() {
       />
 
       <Section title="Fleet status" note="Sorted by severity, faults first.">
-        <BlurFade delay={0.02} duration={0.6} offset={16}>
+        <BlurFade delay={0.02} duration={0.32} offset={16}>
           <div className="card-flat">
             <div className="table-wrap">
               <table className="table">
@@ -152,7 +152,7 @@ export default async function StationsPage() {
               rule: "none of the above",
             },
           ].map((item, index) => (
-            <BlurFade key={item.status} delay={index * 0.05} duration={0.6} offset={12}>
+            <BlurFade key={item.status} delay={index * 0.05} duration={0.32} offset={12}>
               <div className="card card-pad">
                 <StatusBadge status={item.status} />
                 <p style={{ marginTop: "0.6rem", fontSize: "0.875rem", color: "var(--ink-2)" }}>

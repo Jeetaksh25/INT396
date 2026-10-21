@@ -21,7 +21,7 @@ const formatParam = (value: unknown) => {
 
 function ModelTile({ model, index }: { model: ModelSpec; index: number }) {
   return (
-    <BlurFade delay={index * 0.04} duration={0.6} offset={16}>
+    <BlurFade delay={index * 0.04} duration={0.32} offset={16}>
       <article className="model-card">
         <div className="model-head">
           <div>
@@ -139,7 +139,7 @@ export default async function ModelPage() {
       />
 
       <div className="metric-grid">
-        <BlurFade delay={0.02} duration={0.6} offset={14}>
+        <BlurFade delay={0.02} duration={0.32} offset={14}>
           <div className="metric">
             <div className="metric-top">
               <span className="metric-label">Readings scored</span>
@@ -154,7 +154,7 @@ export default async function ModelPage() {
             </div>
           </div>
         </BlurFade>
-        <BlurFade delay={0.06} duration={0.6} offset={14}>
+        <BlurFade delay={0.06} duration={0.32} offset={14}>
           <div className="metric">
             <div className="metric-top">
               <span className="metric-label">Fault detection</span>
@@ -174,7 +174,7 @@ export default async function ModelPage() {
             </div>
           </div>
         </BlurFade>
-        <BlurFade delay={0.1} duration={0.6} offset={14}>
+        <BlurFade delay={0.1} duration={0.32} offset={14}>
           <div className="metric">
             <div className="metric-top">
               <span className="metric-label">PCA components kept</span>
@@ -187,7 +187,7 @@ export default async function ModelPage() {
             </div>
           </div>
         </BlurFade>
-        <BlurFade delay={0.14} duration={0.6} offset={14}>
+        <BlurFade delay={0.14} duration={0.32} offset={14}>
           <div className="metric">
             <div className="metric-top">
               <span className="metric-label">Best single detector</span>
@@ -218,7 +218,7 @@ export default async function ModelPage() {
         note={`A reading is an anomaly when at least ${consensus.vote_threshold} of ${consensus.vote_total} detectors vote. Most readings draw no votes at all, which is what makes a unanimous flag meaningful.`}
       >
         <div className="split">
-          <BlurFade delay={0.02} duration={0.6} offset={16}>
+          <BlurFade delay={0.02} duration={0.32} offset={16}>
             <div className="card">
               <div className="card-head">
                 <div>
@@ -268,7 +268,7 @@ export default async function ModelPage() {
             </div>
           </BlurFade>
 
-          <BlurFade delay={0.06} duration={0.6} offset={16}>
+          <BlurFade delay={0.06} duration={0.32} offset={16}>
             <div className="card card-pad">
               <h3 className="card-title" style={{ marginBottom: "0.75rem" }}>
                 Aggregation settings
@@ -311,7 +311,7 @@ export default async function ModelPage() {
         note={`${card.features.count} features per reading, standardised per station on the reference period.`}
       >
         <div className="split">
-          <BlurFade delay={0.02} duration={0.6} offset={14}>
+          <BlurFade delay={0.02} duration={0.32} offset={14}>
             <div className="card card-pad">
               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
                 {card.features.columns.map((column) => (
@@ -342,7 +342,7 @@ export default async function ModelPage() {
             </div>
           </BlurFade>
 
-          <BlurFade delay={0.06} duration={0.6} offset={14}>
+          <BlurFade delay={0.06} duration={0.32} offset={14}>
             <div className="card card-pad">
               <h3 className="card-title" style={{ marginBottom: "0.75rem" }}>
                 Dataset
@@ -368,7 +368,7 @@ export default async function ModelPage() {
         note="Faults and extremes are scored separately. Averaging them would hide the entire point."
       >
         <div className="cols-2">
-          <BlurFade delay={0.02} duration={0.6} offset={16}>
+          <BlurFade delay={0.02} duration={0.32} offset={16}>
             <div className="card">
               <div className="card-head">
                 <div>
@@ -385,7 +385,7 @@ export default async function ModelPage() {
             </div>
           </BlurFade>
 
-          <BlurFade delay={0.06} duration={0.6} offset={16}>
+          <BlurFade delay={0.06} duration={0.32} offset={16}>
             <div className="card">
               <div className="card-head">
                 <div>
@@ -402,7 +402,7 @@ export default async function ModelPage() {
       </Section>
 
       <Section title="Metric table" note="Every headline number, detector against baseline.">
-        <BlurFade delay={0.02} duration={0.6} offset={14}>
+        <BlurFade delay={0.02} duration={0.32} offset={14}>
           <div className="card-flat">
             <div className="table-wrap">
               <table className="table">
@@ -519,7 +519,7 @@ export default async function ModelPage() {
       </Section>
 
       <Section title="Unsupervised by construction" note="Three mechanisms, not a promise.">
-        <BlurFade delay={0.02} duration={0.6} offset={14}>
+        <BlurFade delay={0.02} duration={0.32} offset={14}>
           <div className="card card-pad">
             <Callout icon={<ShieldCheck size={17} weight="regular" />}>
               <strong style={{ color: "var(--ink)", fontWeight: 550 }}>
@@ -560,7 +560,7 @@ export default async function ModelPage() {
             { label: "Detectors", value: card.runtime.detector_seconds ?? 0, unit: "s" },
             { label: "Discriminator", value: card.runtime.discriminator_seconds ?? 0, unit: "s" },
           ].map((item, index) => (
-            <BlurFade key={item.label} delay={index * 0.05} duration={0.6} offset={12}>
+            <BlurFade key={item.label} delay={index * 0.05} duration={0.32} offset={12}>
               <div className="card card-pad">
                 <p className="mono-label">{item.label}</p>
                 <p
@@ -599,7 +599,7 @@ export default async function ModelPage() {
               body: "Fault and extreme models, the rule tree, and the baseline definition.",
             },
           ].map((item, index) => (
-            <BlurFade key={item.href} delay={index * 0.05} duration={0.6} offset={12}>
+            <BlurFade key={item.href} delay={index * 0.05} duration={0.32} offset={12}>
               <Link href={item.href} className="card card-pad" style={{ display: "block" }}>
                 <div
                   style={{

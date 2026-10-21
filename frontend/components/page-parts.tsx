@@ -35,17 +35,17 @@ export function PageHead({
   return (
     <header className="page-head">
       <div className="page-head-copy">
-        <BlurFade delay={0.04} duration={0.55} offset={14}>
+        <BlurFade delay={0.04} duration={0.3} offset={14}>
           <h1 className={size === "large" ? "page-title-lg" : "page-title"}>{title}</h1>
         </BlurFade>
         {description ? (
-          <BlurFade delay={0.1} duration={0.55} offset={12}>
+          <BlurFade delay={0.1} duration={0.3} offset={12}>
             <p className="page-sub">{description}</p>
           </BlurFade>
         ) : null}
       </div>
       {aside ? (
-        <BlurFade delay={0.14} duration={0.5} offset={10}>
+        <BlurFade delay={0.14} duration={0.28} offset={10}>
           <div className="page-aside">{aside}</div>
         </BlurFade>
       ) : null}
@@ -103,7 +103,7 @@ export function MetricCard({
 }) {
   const displayValue = format === "percent" ? value * 100 : value;
   return (
-    <BlurFade delay={delay} duration={0.6} offset={16}>
+    <BlurFade delay={delay} duration={0.32} offset={16}>
       <div className="metric">
         <div className="metric-top">
           <span className="metric-label">{label}</span>

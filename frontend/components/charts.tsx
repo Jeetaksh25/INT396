@@ -82,6 +82,8 @@ const faultNames: Record<string, string> = {
 
 const ranges = [7, 30, 90];
 
+const ANIM = 420;
+
 function SensorTooltip({
   active,
   payload,
@@ -288,6 +290,8 @@ export function NetworkTimeline({
           <Area
             type="monotone"
             dataKey="anomalies"
+            animationDuration={ANIM}
+            animationEasing="ease-out"
             stroke={INK}
             strokeWidth={1.5}
             fill="url(#flagFill)"
@@ -297,6 +301,7 @@ export function NetworkTimeline({
           <Line
             type="monotone"
             dataKey="faults"
+            animationDuration={ANIM}
             stroke={FAULT}
             strokeWidth={1.3}
             dot={false}
@@ -305,6 +310,7 @@ export function NetworkTimeline({
           <Line
             type="monotone"
             dataKey="extremes"
+            animationDuration={ANIM}
             stroke={EXTREME}
             strokeWidth={1.3}
             dot={false}
@@ -402,6 +408,7 @@ export function SensorLineChart({
           <Line
             type="monotone"
             dataKey="value"
+            animationDuration={ANIM}
             stroke={INK}
             strokeWidth={1.1}
             dot={false}
@@ -510,7 +517,14 @@ export function RecallBars({
               />
             }
           />
-          <Bar dataKey="detector" fill={ACCENT} radius={[0, 4, 4, 0]} maxBarSize={11}>
+          <Bar
+            dataKey="detector"
+            fill={ACCENT}
+            radius={[0, 4, 4, 0]}
+            maxBarSize={11}
+            animationDuration={ANIM}
+            animationEasing="ease-out"
+          >
             <LabelList
               dataKey="detector"
               position="right"
@@ -519,7 +533,13 @@ export function RecallBars({
               style={{ fontSize: 11, fill: DIM, fontVariantNumeric: "tabular-nums" }}
             />
           </Bar>
-          <Bar dataKey="baseline" fill={HAIRLINE} radius={[0, 4, 4, 0]} maxBarSize={11} />
+          <Bar
+            dataKey="baseline"
+            fill={HAIRLINE}
+            radius={[0, 4, 4, 0]}
+            maxBarSize={11}
+            animationDuration={ANIM}
+          />
         </BarChart>
       </ChartContainer>
     </div>
@@ -620,7 +640,13 @@ export function FlagRateBars({
               />
             }
           />
-          <Bar dataKey="rate" radius={[0, 5, 5, 0]} maxBarSize={26}>
+          <Bar
+            dataKey="rate"
+            radius={[0, 5, 5, 0]}
+            maxBarSize={26}
+            animationDuration={ANIM}
+            animationEasing="ease-out"
+          >
             {rows.map((row) => (
               <Cell key={row.name} fill={row.fill} />
             ))}

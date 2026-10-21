@@ -48,7 +48,7 @@ export default async function MethodPage() {
       />
 
       <Section title="The pipeline, in order" note="Five stages, no hidden step.">
-        <BlurFade delay={0.02} duration={0.6} offset={14}>
+        <BlurFade delay={0.02} duration={0.32} offset={14}>
           <div className="card card-pad">
             <StepList
               steps={[
@@ -108,7 +108,7 @@ export default async function MethodPage() {
 
       <Section title="Fault and extreme models" note="What was injected, and why it is separable.">
         <div className="cols-2">
-          <BlurFade delay={0.02} duration={0.6} offset={14}>
+          <BlurFade delay={0.02} duration={0.32} offset={14}>
             <div className="card">
               <div className="card-head">
                 <div>
@@ -151,7 +151,7 @@ export default async function MethodPage() {
             </div>
           </BlurFade>
 
-          <BlurFade delay={0.06} duration={0.6} offset={14}>
+          <BlurFade delay={0.06} duration={0.32} offset={14}>
             <div className="card card-pad">
               <h3 className="card-title" style={{ marginBottom: "0.6rem" }}>
                 Why the two are separable
@@ -183,7 +183,7 @@ export default async function MethodPage() {
       </Section>
 
       <Section title="The rule tree" note="Read top to bottom, first match wins.">
-        <BlurFade delay={0.02} duration={0.6} offset={14}>
+        <BlurFade delay={0.02} duration={0.32} offset={14}>
           <div className="card card-pad">
             <div className="table-wrap">
               <table className="table">
@@ -227,7 +227,7 @@ export default async function MethodPage() {
 
       <Section title="Baseline definition" note="The naive quality-control rule every network already runs.">
         <div className="split">
-          <BlurFade delay={0.02} duration={0.6} offset={14}>
+          <BlurFade delay={0.02} duration={0.32} offset={14}>
             <div className="card-flat">
               <div className="table-wrap">
                 <table className="table">
@@ -259,7 +259,7 @@ export default async function MethodPage() {
             </div>
           </BlurFade>
 
-          <BlurFade delay={0.06} duration={0.6} offset={14}>
+          <BlurFade delay={0.06} duration={0.32} offset={14}>
             <div className="card card-pad">
               <h3 className="card-title" style={{ marginBottom: "0.6rem" }}>
                 Baseline versus consensus
@@ -313,7 +313,7 @@ export default async function MethodPage() {
               body: "Per-site status and hourly traces.",
             },
           ].map((item, index) => (
-            <BlurFade key={item.href} delay={index * 0.05} duration={0.6} offset={12}>
+            <BlurFade key={item.href} delay={index * 0.05} duration={0.32} offset={12}>
               <Link href={item.href} className="card card-pad" style={{ display: "block" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
                   <span className="card-title">{item.title}</span>

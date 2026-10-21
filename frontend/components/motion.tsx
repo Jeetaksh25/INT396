@@ -41,7 +41,7 @@ export function MotionProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       const lenisInstance = new LenisConstructor({
-        duration: 1.05,
+        duration: 0.72,
         easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         smoothWheel: true,
         touchMultiplier: 1.4,

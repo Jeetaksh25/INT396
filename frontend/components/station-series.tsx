@@ -40,7 +40,7 @@ export function StationSeriesPanel({ series }: { series: StationSeries }) {
 
   return (
     <>
-      <BlurFade delay={0.02} duration={0.6} offset={16}>
+      <BlurFade delay={0.02} duration={0.32} offset={16}>
         <div className="card">
           <div className="card-head">
             <div>
@@ -82,7 +82,7 @@ export function StationSeriesPanel({ series }: { series: StationSeries }) {
       </BlurFade>
 
       {sensorEvents.length > 0 ? (
-        <BlurFade delay={0.06} duration={0.6} offset={16}>
+        <BlurFade delay={0.06} duration={0.32} offset={16}>
           <div className="card-flat">
             <div className="card-head">
               <div>

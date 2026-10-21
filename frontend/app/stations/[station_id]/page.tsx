@@ -46,7 +46,7 @@ export default async function StationPage({
       <TopBar />
       <header className="page-head">
         <div className="page-head-copy">
-          <BlurFade delay={0.02} duration={0.55} offset={14}>
+          <BlurFade delay={0.02} duration={0.3} offset={14}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
               <span className="station-id" style={{ width: "2.6rem", height: "2.6rem" }}>
                 {station_id}
@@ -55,14 +55,14 @@ export default async function StationPage({
               <StatusBadge status={station.status} />
             </div>
           </BlurFade>
-          <BlurFade delay={0.08} duration={0.55} offset={12}>
+          <BlurFade delay={0.08} duration={0.3} offset={12}>
             <p className="page-sub">
               Last {series.days} days of readings with flagged hours, plus the trailing-week summary
               that drives the network status.
             </p>
           </BlurFade>
         </div>
-        <BlurFade delay={0.12} duration={0.5} offset={10}>
+        <BlurFade delay={0.12} duration={0.28} offset={10}>
           <div className="page-aside">
             <span>
               {station.latitude.toFixed(2)}, {station.longitude.toFixed(2)}
@@ -76,7 +76,7 @@ export default async function StationPage({
         </BlurFade>
       </header>
 
-      <BlurFade delay={0.04} duration={0.6} offset={14}>
+      <BlurFade delay={0.04} duration={0.32} offset={14}>
         <div className="metric-grid">
           {[
             { label: "Fault events", value: station.fault_events, caption: "in window" },
@@ -115,7 +115,7 @@ export default async function StationPage({
           </div>
         </div>
         <div className="split">
-          <BlurFade delay={0.02} duration={0.6} offset={16}>
+          <BlurFade delay={0.02} duration={0.32} offset={16}>
             <div className="card-flat">
               <div className="table-wrap">
                 <table className="table">
@@ -148,7 +148,7 @@ export default async function StationPage({
             </div>
           </BlurFade>
 
-          <BlurFade delay={0.06} duration={0.6} offset={16}>
+          <BlurFade delay={0.06} duration={0.32} offset={16}>
             <div className="card card-pad">
               <h3 className="card-title" style={{ marginBottom: "0.5rem" }}>
                 Fault reason codes
@@ -218,7 +218,7 @@ export default async function StationPage({
             <ArrowUpRight size={13} weight="bold" />
           </Link>
         </div>
-        <BlurFade delay={0.02} duration={0.6} offset={16}>
+        <BlurFade delay={0.02} duration={0.32} offset={16}>
           <div className="card-flat">
             <div className="table-wrap">
               <table className="table">

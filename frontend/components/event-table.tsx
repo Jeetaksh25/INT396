@@ -94,7 +94,7 @@ export function EventTable({ events }: { events: EventRecord[] }) {
         </label>
       </div>
 
-      <BlurFade delay={0.02} duration={0.6} offset={16}>
+      <BlurFade delay={0.02} duration={0.32} offset={16}>
         <div className="card-flat">
           <div className="table-wrap">
             <table className="table">
