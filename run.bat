@@ -1,6 +1,9 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
 cd /d "%~dp0"
+
+set API_PORT=8000
+set WEB_PORT=3000
 
 echo ============================================
 echo  INT396 - Sensor Fault Discovery Dashboard
@@ -22,7 +25,7 @@ if errorlevel 1 (
 )
 
 if not exist "backend\results\metrics_summary.json" (
-    echo [1/5] Results missing. Building dataset and running the experiment...
+    echo [1/4] Results missing. Building the full pipeline, this takes a few minutes...
     pushd backend
     python -m pip install -r requirements.txt
     if errorlevel 1 goto failed
@@ -36,34 +39,52 @@ if not exist "backend\results\metrics_summary.json" (
     if errorlevel 1 goto failed
     python -m src.evaluation.run_experiment
     if errorlevel 1 goto failed
+    python -m src.evaluation.export_rules
+    python -m src.evaluation.generate_figures
     popd
 ) else (
-    echo [1/5] Results found, skipping pipeline run.
+    echo [1/4] Results found, skipping pipeline.
 )
 
 if not exist "frontend\node_modules" (
-    echo [2/5] Installing frontend dependencies...
+    echo [2/4] Installing frontend dependencies...
     pushd frontend
     call npm install
     if errorlevel 1 goto failed
     popd
 ) else (
-    echo [2/5] Frontend dependencies present.
+    echo [2/4] Frontend dependencies present.
 )
 
-echo [3/5] Starting API on http://127.0.0.1:8000 ...
-start "INT396 API" cmd /k "cd /d %~dp0backend && python -m uvicorn main:app --host 127.0.0.1 --port 8000"
+echo Checking port %API_PORT% ...
+netstat -ano | findstr /R /C:"LISTENING" | findstr /C:":%API_PORT% " >nul
+if not errorlevel 1 (
+    echo     port %API_PORT% is busy, using 8010
+    set API_PORT=8010
+)
 
-echo [4/5] Starting dashboard on http://localhost:3000 ...
-start "INT396 Dashboard" cmd /k "cd /d %~dp0frontend && npm run dev"
+echo Checking port %WEB_PORT% ...
+netstat -ano | findstr /R /C:"LISTENING" | findstr /C:":%WEB_PORT% " >nul
+if not errorlevel 1 (
+    echo     port %WEB_PORT% is busy, using 3010
+    set WEB_PORT=3010
+)
 
-echo [5/5] Waiting for servers, then opening the browser...
-timeout /t 12 /nobreak >nul
-start "" http://localhost:3000
+echo [3/4] Starting API on http://127.0.0.1:%API_PORT% ...
+start "INT396 API" cmd /k "cd /d %~dp0backend && python -m uvicorn main:app --host 127.0.0.1 --port %API_PORT%"
+
+echo [4/4] Starting dashboard on http://localhost:%WEB_PORT% ...
+start "INT396 Dashboard" cmd /k "cd /d %~dp0frontend && set NEXT_PUBLIC_API_URL=http://127.0.0.1:%API_PORT% && npx next dev -p %WEB_PORT%"
+
+echo Waiting for both servers...
+timeout /t 14 /nobreak >nul
+start "" http://localhost:%WEB_PORT%
 
 echo.
-echo Both servers are running in separate windows.
-echo Close those windows to stop the demo.
+echo   API : http://127.0.0.1:%API_PORT%
+echo   App : http://localhost:%WEB_PORT%
+echo.
+echo Close the two server windows to stop the demo.
 echo.
 pause
 exit /b 0
