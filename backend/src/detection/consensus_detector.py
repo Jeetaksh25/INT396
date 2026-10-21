@@ -106,11 +106,8 @@ def compute_consensus(features, matrix, reference_mask):
     local_flag = ((anomaly_flags == 1) & (local_deviation > deviation_threshold)).astype(int)
     per_group_anomalies = anomaly_flags.groupby(group_key).transform("sum")
     per_group_flagged = local_flag.groupby(group_key).transform("sum")
-    is_local_anomaly = np.where(
-        per_group_anomalies > 0,
-        (local_flag == 1) | (per_group_flagged == 0),
-        False,
-    )
+    fallback = (per_group_anomalies > 0) & (per_group_flagged == 0)
+    is_local_anomaly = (anomaly_flags == 1) & ((local_flag == 1) | fallback)
     result["is_local_anomaly"] = is_local_anomaly.astype(int)
     for score_name, scores in score_columns.items():
         result[score_name] = scores

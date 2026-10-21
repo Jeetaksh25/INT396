@@ -137,7 +137,7 @@ def build_context_tables(detections, feature_frame):
 
 
 def assign_event_ids(context):
-    flagged = context.copy()
+    flagged = context[context["is_local_anomaly"] == 1].copy()
     flagged = flagged.sort_values(["station_id", "sensor_name", "timestamp"]).reset_index(drop=True)
     time_gap = flagged.groupby(["station_id", "sensor_name"])["timestamp"].diff()
     new_event = time_gap.isna() | (time_gap > pd.Timedelta(hours=config.EVENT_MERGE_GAP_HOURS))
