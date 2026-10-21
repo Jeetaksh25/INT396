@@ -68,6 +68,55 @@ def physical_rule_violations(station_frame):
     return violation_count
 
 
+def seasonal_climatology(station_frame, reference_hours):
+    reference = station_frame.iloc[:reference_hours]
+    reference_keys = pd.DataFrame(
+        {"month": reference.index.month, "hour": reference.index.hour}, index=reference.index
+    )
+    centre = reference.groupby([reference_keys["month"], reference_keys["hour"]]).median()
+    spread = (
+        reference.groupby([reference_keys["month"], reference_keys["hour"]]).quantile(0.75)
+        - reference.groupby([reference_keys["month"], reference_keys["hour"]]).quantile(0.25)
+    ).replace(0.0, np.nan)
+    keys = pd.DataFrame(
+        {"month": station_frame.index.month, "hour": station_frame.index.hour},
+        index=station_frame.index,
+    )
+    target = pd.MultiIndex.from_arrays([keys["month"], keys["hour"]])
+    centre = centre.reindex(target).to_numpy()
+    spread = spread.reindex(target).to_numpy()
+    deviation = np.abs(station_frame.to_numpy(dtype=float) - centre) / spread
+    deviation = pd.DataFrame(deviation, index=station_frame.index, columns=station_frame.columns)
+    return deviation.fillna(0.0)
+
+
+def build_context_columns(station_id, station_frame, station_frames, deviation_frames, timestamp_index):
+    own_deviation = deviation_frames[station_id]
+    other_names = [name for name in config.SENSORS]
+
+    others_mean = pd.DataFrame(index=timestamp_index)
+    for sensor_name in config.SENSORS:
+        other_sensors = [name for name in other_names if name != sensor_name]
+        others_mean[sensor_name] = own_deviation[other_sensors].mean(axis=1)
+
+    neighbour_share = pd.DataFrame(index=timestamp_index)
+    for sensor_name in config.SENSORS:
+        columns = []
+        for other_id, other_frame in deviation_frames.items():
+            if other_id == station_id:
+                continue
+            columns.append(
+                (other_frame[sensor_name] > config.COHERENT_DEVIATION_THRESHOLD).astype(float)
+            )
+        neighbour_share[sensor_name] = (
+            pd.concat(columns, axis=1).mean(axis=1).reindex(timestamp_index).fillna(0.0)
+            if columns
+            else 0.0
+        )
+
+    return own_deviation, others_mean, neighbour_share
+
+
 def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
     station_frames = {
         station_id: group.droplevel("station_id")
@@ -82,17 +131,27 @@ def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
         for station_id in station_ids
     }
 
+    standardized_by_station = {
+        station_id: pd.DataFrame(
+            {
+                sensor_name: standardize_sensor(
+                    station_frames[station_id][sensor_name],
+                    station_stats[station_id][sensor_name],
+                )
+                for sensor_name in config.SENSORS
+            }
+        )
+        for station_id in station_ids
+    }
+    deviation_frames = {
+        station_id: seasonal_climatology(station_frames[station_id], reference_hours)
+        for station_id in station_ids
+    }
     feature_blocks = []
     for station_id in station_ids:
         station_frame = station_frames[station_id]
         timestamp_index = station_frame.index
-
-        standardized_by_sensor = {
-            sensor_name: standardize_sensor(
-                station_frame[sensor_name], station_stats[station_id][sensor_name]
-            )
-            for sensor_name in config.SENSORS
-        }
+        standardized_by_sensor = standardized_by_station[station_id]
 
         hour_values = timestamp_index.hour.to_numpy()
         hour_angle = 2.0 * np.pi * hour_values / 24.0
@@ -106,8 +165,15 @@ def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
             ).abs()
             for sensor_name in config.SENSORS
         }
-        coherent_deviation = pd.concat(deviations, axis=1)
-        coherent_flags = (coherent_deviation > config.COHERENT_DEVIATION_THRESHOLD).astype(float)
+        own_deviation, others_mean, neighbour_share = build_context_columns(
+            station_id,
+            station_frame,
+            station_frames,
+            deviation_frames,
+            timestamp_index,
+        )
+        coherent_deviation_frame = (own_deviation > config.COHERENT_DEVIATION_THRESHOLD).astype(float)
+        cross_sensor_count = (others_mean > config.COHERENT_DEVIATION_THRESHOLD).sum(axis=1)
 
         violations = physical_rule_violations(station_frame)
         if rule_violations is None:
@@ -125,7 +191,11 @@ def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
                     "rolling_mean_24h": rolling_mean(values),
                     "rolling_std_24h": rolling_std(values),
                     "flatline_score": flatline_score(values),
-                    "coherent_deviation": coherent_flags[sensor_name],
+                    "climatology_deviation": own_deviation[sensor_name],
+                    "other_sensor_deviation": others_mean[sensor_name],
+                    "coherent_deviation": coherent_deviation_frame[sensor_name],
+                    "cross_sensor_count": cross_sensor_count,
+                    "neighbour_share": neighbour_share[sensor_name],
                     "hour_of_day_sin": hour_sin,
                     "hour_of_day_cos": hour_cos,
                     "rule_violation_count": association_violations.astype(float),

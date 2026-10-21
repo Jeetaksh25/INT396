@@ -29,33 +29,35 @@ def build_context_tables(detections, feature_frame):
     )
     extreme_matrix["coherent_sensor_count"] = extreme_matrix.sum(axis=1)
 
-    deviation_matrix = (
-        detections.pivot_table(
+    neighbour_matrix = (
+        feature_frame.pivot_table(
             index=["station_id", "timestamp"],
             columns="sensor_name",
-            values="sensor_deviation",
-            aggfunc="first",
+            values="neighbour_share",
+            aggfunc="max",
+            fill_value=0,
         )
-        .reindex(columns=config.SENSORS)
+        .reindex(columns=config.SENSORS, fill_value=0)
     )
 
-    neighbour_frames = []
-    for sensor_name in config.SENSORS:
-        wide = deviation_matrix[sensor_name].unstack(level="station_id")
-        flagged = (wide > config.NEIGHBOUR_DEVIATION_THRESHOLD).astype(float)
-        station_count = max(wide.shape[1] - 1, 1)
-        others_flagged = flagged.sum(axis=1).to_numpy()[:, None] - flagged.to_numpy()
-        agreement = pd.DataFrame(
-            others_flagged / station_count,
-            index=wide.index,
-            columns=wide.columns,
+    other_matrix = (
+        feature_frame.pivot_table(
+            index=["station_id", "timestamp"],
+            columns="sensor_name",
+            values="other_sensor_deviation",
+            aggfunc="max",
+            fill_value=0,
         )
-        stacked = agreement.stack()
-        stacked.index.names = ["timestamp", "station_id"]
-        frame = stacked.rename("neighbour_agreement").reset_index()
-        frame["sensor_name"] = sensor_name
-        neighbour_frames.append(frame)
-    neighbour_agreement = pd.concat(neighbour_frames, ignore_index=True)
+        .reindex(columns=config.SENSORS, fill_value=0)
+    )
+
+    neighbour_agreement = neighbour_matrix.stack().rename("neighbour_agreement").reset_index()
+    neighbour_agreement.columns = [
+        "station_id",
+        "timestamp",
+        "sensor_name",
+        "neighbour_agreement",
+    ]
 
     physics_matrix = (
         feature_frame.pivot_table(
@@ -70,8 +72,23 @@ def build_context_tables(detections, feature_frame):
     )
 
     context = detections[
-        ["station_id", "sensor_name", "timestamp", "is_anomaly", "is_local_anomaly", "anomaly_score"]
+        [
+            "station_id",
+            "sensor_name",
+            "timestamp",
+            "is_anomaly",
+            "is_local_anomaly",
+            "anomaly_score",
+        ]
     ].copy()
+    context = context.merge(
+        feature_frame[
+            ["station_id", "sensor_name", "timestamp", "climatology_deviation"]
+        ].rename(columns={"climatology_deviation": "sensor_deviation"}),
+        on=["station_id", "sensor_name", "timestamp"],
+        how="left",
+    )
+    context["sensor_deviation"] = context["sensor_deviation"].fillna(0.0)
     context = context.merge(
         anomaly_matrix[["anomalous_sensor_count"]].reset_index(),
         on=["station_id", "timestamp"],
@@ -80,6 +97,13 @@ def build_context_tables(detections, feature_frame):
     context = context.merge(
         extreme_matrix[["coherent_sensor_count"]].reset_index(),
         on=["station_id", "timestamp"],
+        how="left",
+    )
+    other_stacked = other_matrix.stack().rename("other_sensor_deviation").reset_index()
+    other_stacked.columns = ["station_id", "timestamp", "sensor_name", "other_sensor_deviation"]
+    context = context.merge(
+        other_stacked,
+        on=["station_id", "timestamp", "sensor_name"],
         how="left",
     )
     context = context.merge(
@@ -98,6 +122,7 @@ def build_context_tables(detections, feature_frame):
             "physics_violation",
             "anomalous_sensor_count",
             "coherent_sensor_count",
+            "other_sensor_deviation",
         ]
     ] = context[
         [
@@ -105,16 +130,17 @@ def build_context_tables(detections, feature_frame):
             "physics_violation",
             "anomalous_sensor_count",
             "coherent_sensor_count",
+            "other_sensor_deviation",
         ]
     ].fillna(0.0)
     return context
 
 
 def assign_event_ids(context):
-    flagged = context[context["is_local_anomaly"] == 1].copy()
+    flagged = context.copy()
     flagged = flagged.sort_values(["station_id", "sensor_name", "timestamp"]).reset_index(drop=True)
     time_gap = flagged.groupby(["station_id", "sensor_name"])["timestamp"].diff()
-    new_event = time_gap.isna() | (time_gap > pd.Timedelta(hours=2))
+    new_event = time_gap.isna() | (time_gap > pd.Timedelta(hours=config.EVENT_MERGE_GAP_HOURS))
     flagged["event_number"] = new_event.groupby(
         [flagged["station_id"], flagged["sensor_name"]]
     ).cumsum()
@@ -133,20 +159,25 @@ def classify_group(group):
     physics = float(group["physics_violation"].max())
     duration = int(group["timestamp"].nunique())
     sensors_flagged = int(group["anomalous_sensor_count"].max())
-    coherent_sensors = int(group["coherent_sensor_count"].max())
     single_sensor = sensors_flagged <= 1
+
+    own_deviation = float(group["sensor_deviation"].median())
+    other_deviation = float(group["other_sensor_deviation"].median())
+    coherence_ratio = other_deviation / (own_deviation + 1e-6)
+    coherent = (
+        other_deviation >= config.COHERENT_OTHER_DEVIATION
+        and coherence_ratio >= config.COHERENCE_RATIO_THRESHOLD
+    )
     regional = mean_neighbour >= config.NEIGHBOUR_AGREEMENT_THRESHOLD
 
     if physics > 0:
         return "FAULT", "physics_inconsistent", mean_neighbour, single_sensor, duration
-    if single_sensor and coherent_sensors <= 1:
+    if coherent and (regional or duration >= config.SUSTAINED_EVENT_HOURS):
+        return "EXTREME", "coherent_regional", mean_neighbour, single_sensor, duration
+    if coherent:
+        return "EXTREME", "coherent_multi_sensor", mean_neighbour, single_sensor, duration
+    if single_sensor:
         return "FAULT", "isolated_sensor", mean_neighbour, single_sensor, duration
-    if coherent_sensors >= 2 and regional:
-        return "EXTREME", "regional_coherent", mean_neighbour, single_sensor, duration
-    if coherent_sensors >= 3 and duration > config.SUSTAINED_EVENT_HOURS:
-        return "EXTREME", "coherent_regime", mean_neighbour, single_sensor, duration
-    if duration > config.SUSTAINED_EVENT_HOURS and regional:
-        return "EXTREME", "sustained_regime", mean_neighbour, single_sensor, duration
     return "FAULT", "isolated_or_erratic", mean_neighbour, single_sensor, duration
 
 
@@ -191,7 +222,7 @@ def apply_event_labels(detection_frame, events_frame):
     flagged = labelled[labelled["is_local_anomaly"] == 1].copy()
     flagged = flagged.sort_values(["station_id", "sensor_name", "timestamp"]).reset_index(drop=True)
     time_gap = flagged.groupby(["station_id", "sensor_name"])["timestamp"].diff()
-    new_event = time_gap.isna() | (time_gap > pd.Timedelta(hours=2))
+    new_event = time_gap.isna() | (time_gap > pd.Timedelta(hours=config.EVENT_MERGE_GAP_HOURS))
     flagged["event_number"] = new_event.groupby(
         [flagged["station_id"], flagged["sensor_name"]]
     ).cumsum()

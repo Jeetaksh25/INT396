@@ -88,6 +88,11 @@ def main():
     }
     print(json.dumps(summary, indent=2))
 
+    if len(sys.argv) > 5 and sys.argv[5] == "dump":
+        merged.to_parquet(config.RESULTS_DIR / "tune_merged.parquet", index=False)
+        events.to_parquet(config.RESULTS_DIR / "tune_events.parquet", index=False)
+        print("dumped merged + events")
+
 
 if __name__ == "__main__":
     main()
