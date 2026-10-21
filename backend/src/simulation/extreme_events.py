@@ -19,10 +19,13 @@ def raised_cosine(length, magnitude):
     return magnitude * shape
 
 
-def candidate_starts(timestamps, months, duration, rng, attempts=400):
+def candidate_starts(timestamps, months, duration, rng, attempts=400, fallback_all=False):
     months_array = timestamps.dt.month.to_numpy()
     valid = np.flatnonzero(np.isin(months_array, months))
     valid = valid[valid < len(timestamps) - duration]
+    if len(valid) == 0 and fallback_all:
+        valid = np.flatnonzero(months_array == months_array[0])
+        valid = valid[valid < len(timestamps) - duration]
     if len(valid) == 0:
         return None
     return int(rng.choice(valid))
@@ -93,7 +96,7 @@ def clip_to_physical_bounds(station_frame):
     return station_frame
 
 
-def apply_extreme_episodes(wide_frame, rng):
+def apply_extreme_episodes(wide_frame, rng, episodes_per_type=None):
     working_frame = wide_frame.reset_index()
     working_frame = working_frame.sort_values(["station_id", "timestamp"]).reset_index(drop=True)
     is_extreme = np.zeros(len(working_frame), dtype=int)
@@ -104,9 +107,14 @@ def apply_extreme_episodes(wide_frame, rng):
     for extreme_name in config.EXTREME_TYPES:
         applier = EXTREME_APPLIERS[extreme_name]
         duration_low, duration_high = EXTREME_DURATIONS[extreme_name]
+        per_type = (
+            config.EXTREME_EPISODES_PER_TYPE if episodes_per_type is None else episodes_per_type
+        )
+        if per_type <= 0:
+            continue
         chosen_stations = rng.choice(
             len(station_ids),
-            size=min(config.EXTREME_EPISODES_PER_TYPE, len(station_ids) * 2),
+            size=min(per_type, len(station_ids) * 2),
             replace=True,
         )
         used = set()
@@ -119,7 +127,13 @@ def apply_extreme_episodes(wide_frame, rng):
             station_slice = working_frame.iloc[station_positions].copy()
             timestamps = station_slice["timestamp"].reset_index(drop=True)
             duration = int(rng.integers(duration_low, duration_high + 1))
-            start = candidate_starts(timestamps, SEASON_MONTHS[extreme_name], duration, rng)
+            start = candidate_starts(
+                timestamps,
+                SEASON_MONTHS[extreme_name],
+                duration,
+                rng,
+                fallback_all=True,
+            )
             if start is None or (station_id, start) in used:
                 continue
             used.add((station_id, start))
@@ -154,6 +168,7 @@ def apply_extreme_episodes(wide_frame, rng):
                     SEASON_MONTHS[extreme_name],
                     duration,
                     rng,
+                    fallback_all=True,
                 )
                 if partner_start is None:
                     continue

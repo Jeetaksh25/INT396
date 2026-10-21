@@ -171,7 +171,7 @@ class IsolationForestCustom:
 
 
 class LocalOutlierFactorCustom:
-    def __init__(self, n_neighbors=20, max_reference_samples=12000):
+    def __init__(self, n_neighbors=20, max_reference_samples=4000):
         self.n_neighbors = n_neighbors
         self.max_reference_samples = max_reference_samples
         self.reference_ = None

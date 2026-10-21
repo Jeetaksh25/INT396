@@ -46,7 +46,7 @@ def build_wide_from_dataset(dataset):
     return wide[list(config.SENSORS)]
 
 
-def run_pipeline(dataset, clean_wide):
+def run_pipeline(dataset, clean_wide, progress=None):
     timing = {}
     start_time = time.time()
 
@@ -61,14 +61,20 @@ def run_pipeline(dataset, clean_wide):
         wide_measured, rule_violations=measured_rule_violations
     )
     assert_no_labels(features, "feature matrix")
+    if progress is not None:
+        progress("features", 0.45, "standardising against reference period")
     reference_mask = reference_mask_for(features)
     standardized_features, matrix, feature_stats = build_training_matrix(features, reference_mask)
     timing["features_seconds"] = round(time.time() - feature_start, 2)
 
+    if progress is not None:
+        progress("features", 0.55, "fitting five detectors")
     detector_start = time.time()
     detections, diagnostics = compute_consensus(features, matrix, reference_mask)
     timing["detector_seconds"] = round(time.time() - detector_start, 2)
 
+    if progress is not None:
+        progress("detect", 0.78, "consensus vote complete")
     baseline = build_baseline_table(features)
     detections = detections.merge(
         baseline[["station_id", "sensor_name", "timestamp", "baseline_flag"]],
@@ -77,6 +83,8 @@ def run_pipeline(dataset, clean_wide):
     )
     detections["timestamp"] = pd.to_datetime(detections["timestamp"])
 
+    if progress is not None:
+        progress("detect", 0.85, "classifying fault against extreme")
     discriminator_start = time.time()
     events_frame = classify_all_events(detections, standardized_features)
     assert_no_labels(detections, "detector output")

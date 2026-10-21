@@ -114,15 +114,19 @@ FAULT_INJECTORS = {
 }
 
 
-def apply_fault_episodes(long_frame, rng):
+def apply_fault_episodes(long_frame, rng, episodes_per_type=None):
     measured = long_frame["clean_value"].to_numpy(dtype=float).copy()
     fault_mask = np.zeros(len(long_frame), dtype=bool)
     fault_type = np.full(len(long_frame), "", dtype=object)
     episodes = []
 
+    per_type = config.FAULT_EPISODES_PER_TYPE if episodes_per_type is None else episodes_per_type
     group_keys = list(long_frame.groupby(["station_id", "sensor_name"]).groups.keys())
     for fault_name in config.FAULT_TYPES:
-        chosen_keys = rng.choice(len(group_keys), size=config.FAULT_EPISODES_PER_TYPE, replace=False)
+        draw = max(0, min(per_type, len(group_keys)))
+        if draw == 0:
+            continue
+        chosen_keys = rng.choice(len(group_keys), size=draw, replace=False)
         injector = FAULT_INJECTORS[fault_name]
         for key_index in chosen_keys:
             station_id, sensor_name = group_keys[int(key_index)]

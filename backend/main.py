@@ -1,11 +1,15 @@
 import json
+import queue
+import threading
 from pathlib import Path
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 import config
+from src.simulation.live_simulation import run_simulation
 
 app = FastAPI(title="INT396 Sensor Fault API", version="1.0.0")
 
@@ -268,6 +272,56 @@ def model_card():
 def weather_rules():
     path = config.RESULTS_DIR / "association_rules.json"
     return read_json(path)
+
+
+_simulation_cache = {}
+
+
+@app.get("/api/simulation/run")
+def simulation_run(seed: int = Query(default=None, ge=0, le=999999)):
+    import time as _time
+
+    chosen_seed = int(seed if seed is not None else (_time.time() * 1000) % 1000000)
+    started = _time.time()
+    summary = run_simulation(chosen_seed)
+    summary["timing"]["wall_seconds"] = round(_time.time() - started, 2)
+    return summary
+
+
+@app.get("/api/simulation/events")
+def simulation_events(seed: int = Query(default=0, ge=0, le=999999)):
+    chosen_seed = seed or 1
+    channel = queue.Queue()
+
+    def emit(phase, fraction, detail):
+        channel.put({"phase": phase, "fraction": round(float(fraction), 3), "detail": detail})
+
+    def worker():
+        try:
+            summary = run_simulation(chosen_seed, progress=emit)
+            summary["timing"]["wall_seconds"] = round(
+                summary["timing"].get("total_seconds", 0.0), 2
+            )
+            channel.put({"phase": "complete", "fraction": 1.0, "result": summary})
+        except Exception as error:
+            channel.put({"phase": "failed", "fraction": 1.0, "detail": str(error)})
+        finally:
+            channel.put(None)
+
+    threading.Thread(target=worker, daemon=True).start()
+
+    def stream():
+        while True:
+            item = channel.get()
+            if item is None:
+                break
+            yield f"data: {json.dumps(item)}\n\n"
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.get("/api/rerun")

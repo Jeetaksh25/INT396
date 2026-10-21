@@ -8,12 +8,14 @@ import {
   Pulse,
   ChartLineUp,
   TreeStructure,
+  PlayCircle,
 } from "@phosphor-icons/react";
 
 const overviewLinks = [
   { href: "/", label: "Overview", icon: SquaresFour },
   { href: "/stations", label: "Stations", icon: Broadcast },
   { href: "/events", label: "Events", icon: Pulse },
+  { href: "/simulation", label: "Simulation", icon: PlayCircle },
 ];
 
 const analysisLinks = [
