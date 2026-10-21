@@ -96,7 +96,7 @@ def clip_to_physical_bounds(station_frame):
     return station_frame
 
 
-def apply_extreme_episodes(wide_frame, rng, episodes_per_type=None):
+def apply_extreme_episodes(wide_frame, rng, episodes_per_type=None, total_episodes=None):
     working_frame = wide_frame.reset_index()
     working_frame = working_frame.sort_values(["station_id", "timestamp"]).reset_index(drop=True)
     is_extreme = np.zeros(len(working_frame), dtype=int)
@@ -110,6 +110,10 @@ def apply_extreme_episodes(wide_frame, rng, episodes_per_type=None):
         per_type = (
             config.EXTREME_EPISODES_PER_TYPE if episodes_per_type is None else episodes_per_type
         )
+        if total_episodes is not None:
+            per_type = max(
+                1, int(round(total_episodes / max(1, len(EXTREME_APPLIERS))))
+            )
         if per_type <= 0:
             continue
         chosen_stations = rng.choice(

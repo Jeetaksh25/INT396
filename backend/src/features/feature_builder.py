@@ -70,24 +70,89 @@ def physical_rule_violations(station_frame):
 
 def seasonal_climatology(station_frame, reference_hours):
     reference = station_frame.iloc[:reference_hours]
-    reference_keys = pd.DataFrame(
-        {"month": reference.index.month, "hour": reference.index.hour}, index=reference.index
-    )
-    centre = reference.groupby([reference_keys["month"], reference_keys["hour"]]).median()
-    spread = (
-        reference.groupby([reference_keys["month"], reference_keys["hour"]]).quantile(0.75)
-        - reference.groupby([reference_keys["month"], reference_keys["hour"]]).quantile(0.25)
-    ).replace(0.0, np.nan)
     keys = pd.DataFrame(
-        {"month": station_frame.index.month, "hour": station_frame.index.hour},
+        {
+            "month": station_frame.index.month,
+            "hour": station_frame.index.hour,
+            "dayofyear": station_frame.index.dayofyear,
+        },
         index=station_frame.index,
     )
-    target = pd.MultiIndex.from_arrays([keys["month"], keys["hour"]])
-    centre = centre.reindex(target).to_numpy()
-    spread = spread.reindex(target).to_numpy()
+
+    month_hour_centre = reference.groupby(
+        [reference.index.month, reference.index.hour]
+    ).median()
+    month_hour_spread = (
+        reference.groupby([reference.index.month, reference.index.hour]).quantile(0.75)
+        - reference.groupby([reference.index.month, reference.index.hour]).quantile(0.25)
+    ).replace(0.0, np.nan)
+
+    month_centre = reference.groupby(reference.index.month).median()
+    month_spread = (
+        reference.groupby(reference.index.month).quantile(0.75)
+        - reference.groupby(reference.index.month).quantile(0.25)
+    ).replace(0.0, np.nan)
+
+    hour_centre = reference.groupby(reference.index.hour).median()
+    hour_spread = (
+        reference.groupby(reference.index.hour).quantile(0.75)
+        - reference.groupby(reference.index.hour).quantile(0.25)
+    ).replace(0.0, np.nan)
+
+    overall_centre = reference.median()
+    overall_spread = (reference.quantile(0.75) - reference.quantile(0.25)).replace(0.0, np.nan)
+
+    observed_months = set(reference.index.month.unique())
+
+    def pick(target_index, source, exact_keys, fallback_index):
+        values = source.reindex(exact_keys).to_numpy()
+        missing = np.isnan(values)
+        if missing.any():
+            values[missing] = fallback_index.to_numpy()[missing]
+        return values
+
+    exact = pd.MultiIndex.from_arrays([keys["month"], keys["hour"]])
+    centre_exact = month_hour_centre.reindex(exact).to_numpy()
+    spread_exact = month_hour_spread.reindex(exact).to_numpy()
+
+    same_month = keys["month"].isin(observed_months).to_numpy()
+    month_centre_values = month_centre.reindex(keys["month"]).to_numpy()
+    month_spread_values = month_spread.reindex(keys["month"]).to_numpy()
+    hour_centre_values = hour_centre.reindex(keys["hour"]).to_numpy()
+    hour_spread_values = hour_spread.reindex(keys["hour"]).to_numpy()
+
+    overall_centre_values = np.repeat(
+        overall_centre.to_numpy()[None, :], len(station_frame), axis=0
+    )
+    overall_spread_values = np.repeat(
+        overall_spread.to_numpy()[None, :], len(station_frame), axis=0
+    )
+
+    centre = np.where(
+        np.isnan(centre_exact),
+        np.where(
+            same_month[:, None],
+            np.where(np.isnan(month_centre_values), hour_centre_values, month_centre_values),
+            hour_centre_values,
+        ),
+        centre_exact,
+    )
+    spread = np.where(
+        np.isnan(spread_exact),
+        np.where(
+            same_month[:, None],
+            np.where(np.isnan(month_spread_values), hour_spread_values, month_spread_values),
+            hour_spread_values,
+        ),
+        spread_exact,
+    )
+
+    centre = np.where(np.isnan(centre), overall_centre_values, centre)
+    spread = np.where(np.isnan(spread), overall_spread_values, spread)
+    spread = np.where(np.isnan(spread) | (spread <= 0.0), 1.0, spread)
+
     deviation = np.abs(station_frame.to_numpy(dtype=float) - centre) / spread
-    deviation = pd.DataFrame(deviation, index=station_frame.index, columns=station_frame.columns)
-    return deviation.fillna(0.0)
+    return pd.DataFrame(deviation, index=station_frame.index, columns=station_frame.columns)
 
 
 def build_context_columns(station_id, station_frame, station_frames, deviation_frames, timestamp_index):

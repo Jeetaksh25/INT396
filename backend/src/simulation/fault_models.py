@@ -114,7 +114,7 @@ FAULT_INJECTORS = {
 }
 
 
-def apply_fault_episodes(long_frame, rng, episodes_per_type=None):
+def apply_fault_episodes(long_frame, rng, episodes_per_type=None, total_episodes=None):
     measured = long_frame["clean_value"].to_numpy(dtype=float).copy()
     fault_mask = np.zeros(len(long_frame), dtype=bool)
     fault_type = np.full(len(long_frame), "", dtype=object)
@@ -122,7 +122,10 @@ def apply_fault_episodes(long_frame, rng, episodes_per_type=None):
 
     per_type = config.FAULT_EPISODES_PER_TYPE if episodes_per_type is None else episodes_per_type
     group_keys = list(long_frame.groupby(["station_id", "sensor_name"]).groups.keys())
-    for fault_name in config.FAULT_TYPES:
+    types = list(config.FAULT_TYPES)
+    if total_episodes is not None:
+        per_type = max(1, int(round(total_episodes / max(1, len(types)))))
+    for fault_name in types:
         draw = max(0, min(per_type, len(group_keys)))
         if draw == 0:
             continue
