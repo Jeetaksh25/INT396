@@ -65,35 +65,17 @@ export function StationSeriesPanel({ series }: { series: StationSeries }) {
               ))}
             </div>
           </div>
-          <div style={{ padding: "0.75rem 0.75rem 0.5rem" }}>
+          <div style={{ padding: "0.5rem 0.75rem 1rem" }}>
             <SensorLineChart
               timestamps={timestamps}
               values={values}
               anomalies={anomalies}
               baselineFlags={baselineFlags}
+              bands={series.events
+                .filter((event) => event.sensor_name === activeSensor)
+                .map((event) => ({ start: event.start, end: event.end, label: event.label }))}
               unit={meta.unit || undefined}
             />
-          </div>
-          <div
-            className="legend"
-            style={{
-              padding: "0 1.25rem 1rem",
-              borderTop: "1px solid var(--hairline)",
-              paddingTop: "0.75rem",
-            }}
-          >
-            <span className="legend-item">
-              <span className="swatch" style={{ background: "oklch(48% 0.02 265)" }} />
-              reading
-            </span>
-            <span className="legend-item">
-              <span className="swatch" style={{ background: "oklch(58% 0.20 25)" }} />
-              consensus flag
-            </span>
-            <span className="legend-item">
-              <span className="swatch" style={{ background: "oklch(64% 0.14 78)" }} />
-              range-check flag
-            </span>
           </div>
         </div>
       </BlurFade>

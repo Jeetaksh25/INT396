@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck, ArrowUpRight, Function } from "@phosphor-icons/react/dist/ssr";
+import { ShieldCheck, ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import { getModelCard } from "@/lib/api";
 import { ModelCard, ModelSpec } from "@/lib/types";
 import { PageHead, Section, KvList, Callout, StepList, TickedNumber } from "@/components/page-parts";
@@ -234,6 +234,9 @@ export default async function ModelPage() {
               <div style={{ padding: "0.5rem 1.25rem 1.25rem" }}>
                 {Object.entries(consensus.agreement_share).map(([votes, share]) => {
                   const flagged = Number(votes) >= consensus.vote_threshold;
+                  const count = consensus.agreement_counts[votes] ?? 0;
+                  const peak = Math.max(...Object.values(consensus.agreement_share));
+                  const width = Math.sqrt(share / peak) * 100;
                   return (
                     <div className="meter" key={votes}>
                       <div className="meter-head">
@@ -242,21 +245,20 @@ export default async function ModelPage() {
                           <span
                             className="chip"
                             data-tone={flagged ? "accent" : "neutral"}
-                            style={{ marginLeft: "0.45rem" }}
                           >
                             {flagged ? "anomaly" : "normal"}
                           </span>
                         </span>
-                        <span className="meter-value">{percent(share, 3)}</span>
+                        <span className="meter-value">
+                          <span className="meter-count">{count.toLocaleString()}</span>
+                          <span>{share > 0 && share < 0.001 ? "<0.1%" : percent(share, 2)}</span>
+                        </span>
                       </div>
                       <div className="meter-track">
                         <div
                           className="meter-fill"
                           data-tone={flagged ? undefined : "baseline"}
-                          style={{
-                            width: `${Math.max((share / Math.max(...Object.values(consensus.agreement_share))) * 100, share > 0 ? 1.5 : 0)}%`,
-                            height: "100%",
-                          }}
+                          style={{ width: `${width}%`, height: "100%" }}
                         />
                       </div>
                     </div>
@@ -373,11 +375,8 @@ export default async function ModelPage() {
                   <h3 className="card-title">Recall by fault type</h3>
                   <p className="card-caption">consensus versus the fixed range check</p>
                 </div>
-                <span className="chip" data-tone="neutral">
-                  <span className="swatch" style={{ background: "oklch(58% 0.19 268)" }} /> consensus
-                </span>
               </div>
-              <div style={{ padding: "0.6rem 0.5rem 0.5rem" }}>
+              <div style={{ padding: "0.5rem 1rem 1rem" }}>
                 <RecallBars
                   detector={card.per_fault_type_recall}
                   baseline={card.baseline_per_fault_type_recall}
@@ -394,7 +393,7 @@ export default async function ModelPage() {
                   <p className="card-caption">how much of each class the detector calls anomalous</p>
                 </div>
               </div>
-              <div style={{ padding: "0.6rem 0.5rem 0.5rem" }}>
+              <div style={{ padding: "0.5rem 1rem 1rem" }}>
                 <FlagRateBars confusion={card.confusion} />
               </div>
             </div>

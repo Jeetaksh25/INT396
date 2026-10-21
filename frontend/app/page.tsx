@@ -159,27 +159,11 @@ export default async function HomePage() {
 
       <Section
         title="Network activity"
-        note="Flagged readings per hour across all eight stations, trailing 30 days."
-        action={
-          <div className="legend">
-            <span className="legend-item">
-              <span className="swatch" style={{ background: "oklch(58% 0.19 268)" }} />
-              all flags
-            </span>
-            <span className="legend-item">
-              <span className="swatch" style={{ background: "oklch(58% 0.20 25)" }} />
-              fault verdict
-            </span>
-            <span className="legend-item">
-              <span className="swatch" style={{ background: "oklch(56% 0.15 248)" }} />
-              extreme verdict
-            </span>
-          </div>
-        }
+        note="Flagged readings across all eight stations, aggregated by day. Switch to 7 days for the hourly view."
       >
         <BlurFade delay={0.02} duration={0.6} offset={16}>
           <div className="card card-pad">
-            <NetworkTimeline points={points} />
+            <NetworkTimeline points={points} days={30} />
           </div>
         </BlurFade>
       </Section>

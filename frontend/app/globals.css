@@ -846,6 +846,99 @@ button {
   width: 100%;
 }
 
+.chart-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  padding: 0 0.15rem 0.35rem;
+}
+
+.chart-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+
+.chart-summary-value {
+  font-size: 1.35rem;
+  font-weight: 550;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.chart-summary-key {
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+
+.chart-legend-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+}
+
+.chart-shell .recharts-tooltip-wrapper {
+  background: transparent;
+  border: none;
+  outline: none;
+  z-index: 30;
+}
+
+.chart-tip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 11rem;
+  background: var(--surface);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.7rem;
+  box-shadow: 0 12px 32px -14px oklch(20% 0.01 265 / 0.22);
+}
+
+.chart-tip-title {
+  font-size: var(--text-xs);
+  font-weight: 550;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.chart-tip-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--ink-3);
+}
+
+.chart-tip-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+  width: 100%;
+  font-size: var(--text-xs);
+}
+
+.chart-tip-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+  color: var(--ink);
+}
+
 .legend {
   display: flex;
   flex-wrap: wrap;
@@ -918,12 +1011,25 @@ button {
 .meter-name {
   color: var(--ink-2);
   font-weight: 450;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .meter-value {
   font-variant-numeric: tabular-nums;
   font-weight: 550;
   letter-spacing: -0.02em;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.55rem;
+}
+
+.meter-count {
+  font-weight: 400;
+  font-size: var(--text-xs);
+  color: var(--ink-4);
+  letter-spacing: 0;
 }
 
 .meter-track {
@@ -942,7 +1048,7 @@ button {
 }
 
 .meter-fill[data-tone="baseline"] {
-  background: var(--hairline-strong);
+  background: oklch(78% 0.008 265);
 }
 
 .meter-fill[data-tone="fault"] {

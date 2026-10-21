@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getEvents } from "@/lib/api";
 import { EventRecord } from "@/lib/types";
 import { EventTable } from "@/components/event-table";
