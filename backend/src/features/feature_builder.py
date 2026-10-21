@@ -158,13 +158,6 @@ def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
         hour_sin = pd.Series(np.sin(hour_angle), index=timestamp_index)
         hour_cos = pd.Series(np.cos(hour_angle), index=timestamp_index)
 
-        deviations = {
-            sensor_name: (
-                (station_frame[sensor_name].astype(float) - rolling_median(station_frame[sensor_name].astype(float)))
-                / rolling_std(station_frame[sensor_name].astype(float)).replace(0.0, np.nan).fillna(1.0)
-            ).abs()
-            for sensor_name in config.SENSORS
-        }
         own_deviation, others_mean, neighbour_share = build_context_columns(
             station_id,
             station_frame,
@@ -191,11 +184,11 @@ def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
                     "rolling_mean_24h": rolling_mean(values),
                     "rolling_std_24h": rolling_std(values),
                     "flatline_score": flatline_score(values),
-                    "climatology_deviation": own_deviation[sensor_name],
-                    "other_sensor_deviation": others_mean[sensor_name],
-                    "coherent_deviation": coherent_deviation_frame[sensor_name],
-                    "cross_sensor_count": cross_sensor_count,
-                    "neighbour_share": neighbour_share[sensor_name],
+                    "climatology_deviation": own_deviation[sensor_name].to_numpy(),
+                    "other_sensor_deviation": others_mean[sensor_name].to_numpy(),
+                    "coherent_deviation": coherent_deviation_frame[sensor_name].to_numpy(),
+                    "cross_sensor_count": cross_sensor_count.to_numpy(),
+                    "neighbour_share": neighbour_share[sensor_name].to_numpy(),
                     "hour_of_day_sin": hour_sin,
                     "hour_of_day_cos": hour_cos,
                     "rule_violation_count": association_violations.astype(float),
