@@ -245,6 +245,21 @@ def assemble_detections(
     fallback = (per_group_anomalies > 0) & (per_group_flagged == 0)
     is_local_anomaly = (anomaly_flags == 1) & ((local_flag == 1) | fallback)
 
+    loud_pivot = features.pivot_table(
+        index=["station_id", "timestamp"],
+        columns="sensor_name",
+        values="climatology_deviation",
+        aggfunc="max",
+        fill_value=0.0,
+    )
+    loud_count = (loud_pivot > config.COHERENCE_SENSOR_THRESHOLD).sum(axis=1)
+    coherent_weather = loud_count >= config.COHERENCE_SENSOR_COUNT
+    coherent_lookup = coherent_weather.to_dict()
+    keys = list(zip(result["station_id"], pd.to_datetime(result["timestamp"])))
+    result["coherent_weather"] = np.array(
+        [int(bool(coherent_lookup.get(key, False))) for key in keys], dtype=int
+    )
+
     result["is_local_anomaly"] = is_local_anomaly.astype(int)
     for name, name_scores in scores.items():
         result[name] = name_scores

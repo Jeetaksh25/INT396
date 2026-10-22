@@ -21,13 +21,14 @@ def build_context_tables(detections, feature_frame):
         feature_frame.pivot_table(
             index=["station_id", "timestamp"],
             columns="sensor_name",
-            values="coherent_deviation",
+            values="climatology_deviation",
             aggfunc="max",
             fill_value=0,
         )
         .reindex(columns=config.SENSORS, fill_value=0)
     )
-    extreme_matrix["coherent_sensor_count"] = extreme_matrix.sum(axis=1)
+    loud = (extreme_matrix > config.COHERENCE_SENSOR_THRESHOLD).sum(axis=1)
+    extreme_matrix["coherent_sensor_count"] = loud.astype(float)
 
     neighbour_matrix = (
         feature_frame.pivot_table(
@@ -79,6 +80,7 @@ def build_context_tables(detections, feature_frame):
             "is_anomaly",
             "is_local_anomaly",
             "anomaly_score",
+            "coherent_weather",
         ]
     ].copy()
     context = context.merge(
@@ -137,7 +139,9 @@ def build_context_tables(detections, feature_frame):
 
 
 def assign_event_ids(context):
-    flagged = context[context["is_local_anomaly"] == 1].copy()
+    flagged = context[
+        (context["is_local_anomaly"] == 1) | (context["coherent_weather"] == 1)
+    ].copy()
     flagged = flagged.sort_values(["station_id", "sensor_name", "timestamp"]).reset_index(drop=True)
     time_gap = flagged.groupby(["station_id", "sensor_name"])["timestamp"].diff()
     new_event = time_gap.isna() | (time_gap > pd.Timedelta(hours=config.EVENT_MERGE_GAP_HOURS))
@@ -169,9 +173,14 @@ def classify_group(group):
         and coherence_ratio >= config.COHERENCE_RATIO_THRESHOLD
     )
     regional = mean_neighbour >= config.NEIGHBOUR_AGREEMENT_THRESHOLD
+    sensors_loud = int(group["coherent_sensor_count"].max())
 
-    if physics > 0:
+    if physics > 0 and sensors_loud < config.COHERENCE_SENSOR_COUNT:
         return "FAULT", "physics_inconsistent", mean_neighbour, single_sensor, duration
+    if sensors_loud >= config.COHERENCE_SENSOR_COUNT:
+        if regional:
+            return "EXTREME", "coherent_regional", mean_neighbour, single_sensor, duration
+        return "EXTREME", "coherent_multi_sensor", mean_neighbour, single_sensor, duration
     if coherent and (regional or duration >= config.SUSTAINED_EVENT_HOURS):
         return "EXTREME", "coherent_regional", mean_neighbour, single_sensor, duration
     if coherent:
@@ -221,7 +230,9 @@ def apply_event_labels(detection_frame, events_frame):
         labelled["is_extreme_flagged"] = np.zeros(len(labelled), dtype=int)
         return labelled
 
-    flagged = labelled[labelled["is_local_anomaly"] == 1].copy()
+    flagged = labelled[
+        (labelled["is_local_anomaly"] == 1) | (labelled["coherent_weather"] == 1)
+    ].copy()
     flagged = flagged.sort_values(["station_id", "sensor_name", "timestamp"]).reset_index(drop=False)
     time_gap = flagged.groupby(["station_id", "sensor_name"])["timestamp"].diff()
     new_event = time_gap.isna() | (time_gap > pd.Timedelta(hours=config.EVENT_MERGE_GAP_HOURS))
@@ -246,10 +257,6 @@ def apply_event_labels(detection_frame, events_frame):
 
     labelled["event_label"] = label_values
     labelled["reason_code"] = reason_values
-    labelled["is_fault_flagged"] = (
-        (labelled["is_local_anomaly"] == 1) & (labelled["event_label"] == "FAULT")
-    ).astype(int)
-    labelled["is_extreme_flagged"] = (
-        (labelled["is_local_anomaly"] == 1) & (labelled["event_label"] == "EXTREME")
-    ).astype(int)
+    labelled["is_fault_flagged"] = (labelled["event_label"] == "FAULT").astype(int)
+    labelled["is_extreme_flagged"] = (labelled["event_label"] == "EXTREME").astype(int)
     return labelled

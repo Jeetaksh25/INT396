@@ -68,13 +68,27 @@ def physical_rule_violations(station_frame):
     return violation_count
 
 
-def seasonal_climatology(station_frame, reference_hours):
+def seasonal_climatology(station_frame, reference_hours, full_climatology=None):
+    if full_climatology is not None:
+        centre, spread = full_climatology
+        keys = pd.MultiIndex.from_arrays(
+            [station_frame.index.month, station_frame.index.hour]
+        )
+        centre_values = centre.reindex(keys).to_numpy()
+        spread_values = spread.reindex(keys).to_numpy()
+        spread_values = np.where(
+            np.isfinite(spread_values) & (spread_values > 1e-9), spread_values, 1.0
+        )
+        deviation = np.abs(station_frame.to_numpy(dtype=float) - centre_values) / spread_values
+        return pd.DataFrame(
+            deviation, index=station_frame.index, columns=station_frame.columns
+        )
+
     reference = station_frame.iloc[:reference_hours]
     keys = pd.DataFrame(
         {
             "month": station_frame.index.month,
             "hour": station_frame.index.hour,
-            "dayofyear": station_frame.index.dayofyear,
         },
         index=station_frame.index,
     )
@@ -101,15 +115,7 @@ def seasonal_climatology(station_frame, reference_hours):
 
     overall_centre = reference.median()
     overall_spread = (reference.quantile(0.75) - reference.quantile(0.25)).replace(0.0, np.nan)
-
     observed_months = set(reference.index.month.unique())
-
-    def pick(target_index, source, exact_keys, fallback_index):
-        values = source.reindex(exact_keys).to_numpy()
-        missing = np.isnan(values)
-        if missing.any():
-            values[missing] = fallback_index.to_numpy()[missing]
-        return values
 
     exact = pd.MultiIndex.from_arrays([keys["month"], keys["hour"]])
     centre_exact = month_hour_centre.reindex(exact).to_numpy()
@@ -153,6 +159,15 @@ def seasonal_climatology(station_frame, reference_hours):
 
     deviation = np.abs(station_frame.to_numpy(dtype=float) - centre) / spread
     return pd.DataFrame(deviation, index=station_frame.index, columns=station_frame.columns)
+
+
+def build_full_climatology(station_frame):
+    keys = pd.MultiIndex.from_arrays([station_frame.index.month, station_frame.index.hour])
+    centre = station_frame.groupby(keys).median()
+    spread = (
+        station_frame.groupby(keys).quantile(0.75) - station_frame.groupby(keys).quantile(0.25)
+    ).replace(0.0, np.nan)
+    return centre, spread
 
 
 def build_context_columns(station_id, station_frame, station_frames, deviation_frames, timestamp_index):
@@ -209,7 +224,13 @@ def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
         for station_id in station_ids
     }
     deviation_frames = {
-        station_id: seasonal_climatology(station_frames[station_id], reference_hours)
+        station_id: seasonal_climatology(
+            station_frames[station_id],
+            reference_hours,
+            full_climatology=build_full_climatology(station_frames[station_id])
+            if getattr(config, "USE_FULL_CLIMATOLOGY", False)
+            else None,
+        )
         for station_id in station_ids
     }
     feature_blocks = []
