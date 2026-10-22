@@ -25,6 +25,8 @@ STREAM_TARGET = 96
 
 WINDOW_DAYS = 21
 
+HISTORY_HOURS = 720
+
 FAULTS_PER_TYPE = 2
 
 EXTREMES_PER_TYPE = 1
@@ -478,14 +480,58 @@ def run_simulation(seed, progress=None, operating_point=None):
 
     report("generate", 0.55, "cutting random window")
     hours = slice_window(clean_wide, seed)
+    history_hours = np.sort(pd.unique(clean_wide.index.get_level_values("timestamp")))
+    start_position = int(np.searchsorted(history_hours, hours[0]))
+    warmup_start = max(0, start_position - HISTORY_HOURS)
+    context_hours = history_hours[warmup_start:]
+
+    context_window = clean_wide.loc[
+        np.isin(clean_wide.index.get_level_values("timestamp"), context_hours)
+    ].copy()
     window = clean_wide.loc[
         np.isin(clean_wide.index.get_level_values("timestamp"), hours)
     ].copy()
 
     report("generate", 0.62, "injecting weather extremes")
-    labelled_long, measured, wide_measured, fault_episodes, extreme_episodes = inject_events(
+    labelled_window, measured_window, wide_window, fault_episodes, extreme_episodes = inject_events(
         window, seed
     )
+
+    context_only = context_window.loc[
+        ~np.isin(context_window.index.get_level_values("timestamp"), hours)
+    ]
+    context_long = long_form(context_only, context_only[list(config.SENSORS)])
+    context_long["is_fault_injected"] = 0
+    context_long["is_extreme_event"] = 0
+    context_long["fault_type"] = ""
+    context_long["extreme_type"] = ""
+
+    labelled_long = pd.concat(
+        [
+            context_long[
+                [
+                    "station_id",
+                    "timestamp",
+                    "sensor_name",
+                    "measured_value",
+                    "is_fault_injected",
+                    "is_extreme_event",
+                    "fault_type",
+                    "extreme_type",
+                ]
+            ],
+            labelled_window,
+        ],
+        ignore_index=True,
+    ).sort_values(["station_id", "sensor_name", "timestamp"]).reset_index(drop=True)
+
+    measured = labelled_long.pivot_table(
+        index=["station_id", "timestamp"],
+        columns="sensor_name",
+        values="measured_value",
+        aggfunc="first",
+    ).reindex(columns=list(config.SENSORS)).sort_index()
+    wide_measured = wide_window
 
     report("features", 0.7, "building feature columns")
     violations = rule_violations_for_wide(measured[list(config.SENSORS)], bank["rules"])
@@ -507,6 +553,13 @@ def run_simulation(seed, progress=None, operating_point=None):
             "extreme_type",
         ]
     ].copy()
+
+    window_mask = pd.to_datetime(detections["timestamp"]).isin(hours).to_numpy()
+    detections = detections.loc[window_mask].reset_index(drop=True)
+    events = events[events["start"].isin(hours)]
+    dataset_labels = dataset_labels[
+        pd.to_datetime(dataset_labels["timestamp"]).isin(hours).to_numpy()
+    ].reset_index(drop=True)
 
     report("stream", 0.93, "sampling readings")
     records = pick_stream(detections, dataset_labels)

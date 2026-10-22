@@ -476,7 +476,7 @@ export function SimulationStudio() {
                       <span className="sim-lane-caption">{lane.caption}</span>
                     </div>
                     <span className="sim-lane-count num">
-                      <NumberTicker value={count} decimalPlaces={0} />
+                      <NumberTicker value={count} decimalPlaces={0} animateOnView={false} />
                     </span>
                   </div>
                   <div
@@ -732,6 +732,7 @@ function RunReport({ result }: { result: SimResult }) {
                 value={card.value}
                 decimalPlaces={card.decimals}
                 className="num"
+                animateOnView={false}
               />
               {card.suffix}
             </div>
