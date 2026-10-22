@@ -78,12 +78,20 @@ CLEAN_REFERENCE_QUANTILE = 0.90
 DEVELOPMENT_WINDOW_HOURS = 168
 
 DETECTOR_WEIGHTS = {
-    "isolation": 0.55,
-    "lof": 0.25,
-    "kmeans": 0.20,
+    "isolation": 0.40,
+    "lof": 0.30,
+    "kmeans": 0.10,
 }
 
 ENSEMBLE_QUANTILE = 0.99
+
+OPERATING_POINTS = {
+    "balanced": {"quantile": 0.99, "deviation_gate": 1.0},
+    "high_recall": {"quantile": 0.95, "deviation_gate": 0.0},
+    "high_precision": {"quantile": 0.992, "deviation_gate": 1.0},
+}
+
+DEFAULT_OPERATING_POINT = "balanced"
 
 VOTE_DETECTORS = ["isolation", "lof", "kmeans"]
 
@@ -121,7 +129,7 @@ NEIGHBOUR_AGREEMENT_THRESHOLD = 0.20
 COHERENT_OTHER_DEVIATION = 0.35
 COHERENCE_RATIO_THRESHOLD = 0.45
 EVENT_MERGE_GAP_HOURS = 6
-NEIGHBOUR_DEVIATION_THRESHOLD = 1.4
+NEIGHBOUR_DEVIATION_THRESHOLD = 1.0
 COHERENT_DEVIATION_THRESHOLD = 1.4
 SUSTAINED_EVENT_HOURS = 12
 

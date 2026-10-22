@@ -136,11 +136,17 @@ def weighted_ensemble(scores, weights=None):
     return combined
 
 
-def fit_consensus(reference_matrix):
+def fit_consensus(reference_matrix, operating_point=None):
+    if operating_point is None:
+        operating_point = config.DEFAULT_OPERATING_POINT
+    profile = config.OPERATING_POINTS.get(
+        operating_point, config.OPERATING_POINTS[config.DEFAULT_OPERATING_POINT]
+    )
+
     bank = build_bank(reference_matrix)
     reference_scores, _, components = score_with_bank(bank, reference_matrix)
     reference_ranks = weighted_ensemble(reference_scores)
-    threshold = float(np.quantile(reference_ranks, config.ENSEMBLE_QUANTILE))
+    threshold = float(np.quantile(reference_ranks, profile["quantile"]))
 
     thresholds = {
         name.replace("_score", "_vote"): threshold_from_reference(scores, None)
@@ -156,13 +162,24 @@ def fit_consensus(reference_matrix):
         "bank": bank,
         "thresholds": thresholds,
         "ensemble_threshold": threshold,
+        "operating_point": operating_point,
+        "deviation_gate": profile["deviation_gate"],
         "vote_rates": vote_rates,
         "pca_components": components,
         "reference_rows": int(len(reference_matrix)),
     }
 
 
-def assemble_detections(features, scores, labels, threshold_map, ensemble_threshold=None):
+def assemble_detections(
+    features,
+    scores,
+    labels,
+    threshold_map,
+    ensemble_threshold=None,
+    deviation_gate=None,
+):
+    if deviation_gate is None:
+        deviation_gate = config.NEIGHBOUR_DEVIATION_THRESHOLD
     values = features["measured_value"].astype(float)
     local_mean = rolling_mean(values)
     local_std = rolling_std(values).replace(0.0, np.nan).fillna(1.0)
@@ -222,9 +239,7 @@ def assemble_detections(features, scores, labels, threshold_map, ensemble_thresh
     anomaly_flags = pd.Series(is_anomaly, index=result.index)
     group_key = result["station_id"].astype(str) + "|" + result["sensor_name"].astype(str)
     local_deviation = result["sensor_deviation"].abs()
-    local_flag = (
-        (anomaly_flags == 1) & (local_deviation > config.NEIGHBOUR_DEVIATION_THRESHOLD)
-    ).astype(int)
+    local_flag = ((anomaly_flags == 1) & (local_deviation > deviation_gate)).astype(int)
     per_group_anomalies = anomaly_flags.groupby(group_key).transform("sum")
     per_group_flagged = local_flag.groupby(group_key).transform("sum")
     fallback = (per_group_anomalies > 0) & (per_group_flagged == 0)
@@ -253,6 +268,7 @@ def compute_consensus(features, matrix, reference_mask):
         labels,
         fitted["thresholds"],
         ensemble_threshold=fitted["ensemble_threshold"],
+        deviation_gate=fitted["deviation_gate"],
     )
     result["pca_components"] = components
 

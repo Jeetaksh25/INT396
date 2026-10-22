@@ -282,18 +282,49 @@ def build_all_features(wide_frame, rule_violations=None, rule_scores=None):
     return features, station_stats
 
 
+HEAVY_TAIL_COLUMNS = {
+    "stl_residual_z",
+    "stl_trend_z",
+    "stl_trend_slope_z",
+    "forecast_residual_z",
+    "forecast_bias",
+    "rate_z",
+    "acceleration_z",
+    "long_baseline_z",
+    "trend_168h",
+    "station_residual_max",
+    "station_forecast_max",
+}
+
+
+def robust_scale(series, quantile=0.999):
+    values = series.to_numpy(dtype=float)
+    finite = values[np.isfinite(values)]
+    if len(finite) == 0:
+        return 1.0
+    scale = float(np.quantile(np.abs(finite), quantile))
+    if not np.isfinite(scale) or scale < 1e-9:
+        scale = float(np.std(finite))
+    return scale if np.isfinite(scale) and scale > 1e-9 else 1.0
+
+
 def build_training_matrix(features, reference_mask):
     standardized = features.copy()
     statistics = {}
     for column in config.FEATURE_COLUMNS:
         reference_values = standardized.loc[reference_mask, column].astype(float)
-        mean_value = float(reference_values.mean())
-        std_value = float(reference_values.std())
-        if not np.isfinite(std_value) or std_value < 1e-9:
-            std_value = 1.0
+        mean_value = float(reference_values.median())
         if not np.isfinite(mean_value):
             mean_value = 0.0
-        standardized[column] = (standardized[column].astype(float) - mean_value) / std_value
+        if column in HEAVY_TAIL_COLUMNS:
+            std_value = robust_scale(reference_values)
+            clipped = ((standardized[column].astype(float) - mean_value) / std_value).clip(-12.0, 12.0)
+        else:
+            std_value = float(reference_values.std())
+            if not np.isfinite(std_value) or std_value < 1e-9:
+                std_value = 1.0
+            clipped = (standardized[column].astype(float) - mean_value) / std_value
+        standardized[column] = clipped
         statistics[column] = {"mean": mean_value, "std": std_value}
     standardized[config.FEATURE_COLUMNS] = standardized[config.FEATURE_COLUMNS].fillna(0.0)
     standardized[config.FEATURE_COLUMNS] = standardized[config.FEATURE_COLUMNS].replace(
