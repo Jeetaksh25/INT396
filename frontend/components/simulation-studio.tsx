@@ -80,6 +80,7 @@ export function SimulationStudio() {
   const [runNumber, setRunNumber] = useState(0);
   const [serverPhase, setServerPhase] = useState<string>("generate");
   const [serverFraction, setServerFraction] = useState(0);
+  const [profile, setProfile] = useState<string>("balanced");
 
   const incomingRef = useRef<HTMLDivElement | null>(null);
   const laneRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -116,7 +117,9 @@ export function SimulationStudio() {
     setServerFraction(0);
 
     try {
-      const response = await fetch(`/api/simulation/events?seed=${seed}`);
+      const response = await fetch(
+        `/api/simulation/events?seed=${seed}&profile=${profile}`,
+      );
       if (!response.ok || !response.body) {
         throw new Error(`request failed (${response.status})`);
       }
@@ -168,7 +171,7 @@ export function SimulationStudio() {
       setError(caught instanceof Error ? caught.message : "unknown error");
       setPhase("idle");
     }
-  }, []);
+  }, [profile]);
 
   const flyGhost = useCallback((record: SimRecord) => {
     const source = incomingRef.current?.getBoundingClientRect();
@@ -318,6 +321,30 @@ export function SimulationStudio() {
               {paused ? "Resume" : "Pause"}
             </button>
           ) : null}
+          <div className="sim-profile" role="group" aria-label="Operating point">
+            {[
+              { key: "high_precision", label: "Precise" },
+              { key: "balanced", label: "Balanced" },
+              { key: "high_recall", label: "Sensitive" },
+            ].map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className="sim-speed-btn"
+                data-active={profile === item.key}
+                onClick={() => setProfile(item.key)}
+                title={
+                  item.key === "high_precision"
+                    ? "Fewer alarms, higher confidence"
+                    : item.key === "high_recall"
+                      ? "Catches more, more false alarms"
+                      : "Calibrated balance of the two"
+                }
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
           <div className="sim-speed" role="group" aria-label="Playback speed">
             {[1, 2, 4].map((value) => (
               <button
@@ -681,7 +708,8 @@ function RunReport({ result }: { result: SimResult }) {
         <h2 className="section-title">Run report</h2>
         <span className="sim-report-note">
           seed <b className="num">{result.seed}</b> · {result.counts.readings.toLocaleString()}{" "}
-          readings · {result.counts.hours} hours · {result.timing.total_seconds}s
+          readings · {result.counts.hours} hours · {result.timing.total_seconds}s ·{" "}
+          <b>{result.operating_point.replace("_", " ")}</b>
         </span>
       </div>
 

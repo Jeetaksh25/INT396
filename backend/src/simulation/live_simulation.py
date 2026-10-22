@@ -46,7 +46,7 @@ def load_clean_frame():
     return clean.set_index(["station_id", "timestamp"]).sort_index()
 
 
-def train_bank(clean_wide, progress=None):
+def train_bank(clean_wide, progress=None, operating_point=None):
     if progress is not None:
         progress("train", 0.05, "mining association rules")
     rules = mine_weather_rules(clean_wide.reset_index())
@@ -60,7 +60,7 @@ def train_bank(clean_wide, progress=None):
 
     if progress is not None:
         progress("train", 0.45, "fitting five detectors")
-    bank = fit_consensus(matrix[reference_mask])
+    bank = fit_consensus(matrix[reference_mask], operating_point=operating_point)
     bank["statistics"] = statistics
     bank["rules"] = rules
     bank["reference_rows"] = int(reference_mask.sum())
@@ -68,9 +68,10 @@ def train_bank(clean_wide, progress=None):
     return bank
 
 
-def get_trained(progress=None):
+def get_trained(progress=None, operating_point=None):
     with _lock:
-        if "bank" in _trained:
+        cache_key = operating_point or config.DEFAULT_OPERATING_POINT
+        if _trained.get("key") == cache_key and "bank" in _trained:
             return _trained["bank"]
 
         clean_wide = load_clean_frame()
@@ -82,13 +83,19 @@ def get_trained(progress=None):
             try:
                 with TRAINED_BANK_PATH.open("rb") as handle:
                     bank = pickle.load(handle)
-                if bank.get("version") == BANK_VERSION and "ensemble_threshold" in bank:
+                if (
+                    bank.get("version") == BANK_VERSION
+                    and "ensemble_threshold" in bank
+                    and bank.get("operating_point") == cache_key
+                ):
+                    _trained["key"] = cache_key
                     _trained["bank"] = bank
                     return bank
             except Exception:
                 pass
 
-        bank = train_bank(clean_wide, progress=progress)
+        bank = train_bank(clean_wide, progress=progress, operating_point=operating_point)
+        _trained["key"] = cache_key
         _trained["bank"] = bank
         try:
             TRAINED_BANK_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -189,6 +196,7 @@ def run_detection(features, measured, bank):
         labels,
         bank["thresholds"],
         ensemble_threshold=bank.get("ensemble_threshold"),
+        deviation_gate=bank.get("deviation_gate"),
     )
     detections["pca_components"] = components
 
@@ -209,6 +217,9 @@ def run_detection(features, measured, bank):
     labelled = apply_event_labels(detections, events)
 
     diagnostics = {
+        "operating_point": bank.get("operating_point"),
+        "deviation_gate": bank.get("deviation_gate"),
+        "ensemble_threshold": bank.get("ensemble_threshold"),
         "vote_thresholds": dict(bank["thresholds"]),
         "vote_rates_reference": dict(bank["vote_rates"]),
         "pca_components": int(components),
@@ -445,6 +456,7 @@ def build_summary(detections, labels, records, episodes, seed, window, diagnosti
         "fault_types": config.FAULT_TYPES,
         "extreme_types": config.EXTREME_TYPES,
         "detectors": DETECTOR_NAMES,
+        "operating_point": diagnostics.get("operating_point", config.DEFAULT_OPERATING_POINT),
         "episodes": {
             "fault": episodes["fault"],
             "extreme": episodes["extreme"],
@@ -453,7 +465,7 @@ def build_summary(detections, labels, records, episodes, seed, window, diagnosti
     }
 
 
-def run_simulation(seed, progress=None):
+def run_simulation(seed, progress=None, operating_point=None):
     started = time.time()
 
     def report(phase, fraction, detail=""):
@@ -461,7 +473,7 @@ def run_simulation(seed, progress=None):
             progress(phase, fraction, detail)
 
     report("train", 0.02, "preparing model bank")
-    bank = get_trained(progress=report)
+    bank = get_trained(progress=report, operating_point=operating_point)
     clean_wide = _trained["clean_wide"]
 
     report("generate", 0.55, "cutting random window")

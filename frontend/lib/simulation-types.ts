@@ -122,6 +122,7 @@ export interface SimResult {
   fault_types: string[];
   extreme_types: string[];
   detectors: string[];
+  operating_point: string;
   episodes: { fault: SimEpisode[]; extreme: SimEpisode[] };
   records: SimRecord[];
 }

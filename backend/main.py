@@ -278,18 +278,24 @@ _simulation_cache = {}
 
 
 @app.get("/api/simulation/run")
-def simulation_run(seed: int = Query(default=None, ge=0, le=999999)):
+def simulation_run(
+    seed: int = Query(default=None, ge=0, le=999999),
+    profile: str = Query(default="balanced"),
+):
     import time as _time
 
     chosen_seed = int(seed if seed is not None else (_time.time() * 1000) % 1000000)
     started = _time.time()
-    summary = run_simulation(chosen_seed)
+    summary = run_simulation(chosen_seed, operating_point=profile)
     summary["timing"]["wall_seconds"] = round(_time.time() - started, 2)
     return summary
 
 
 @app.get("/api/simulation/events")
-def simulation_events(seed: int = Query(default=0, ge=0, le=999999)):
+def simulation_events(
+    seed: int = Query(default=0, ge=0, le=999999),
+    profile: str = Query(default="balanced"),
+):
     chosen_seed = seed or 1
     channel = queue.Queue()
 
@@ -298,7 +304,9 @@ def simulation_events(seed: int = Query(default=0, ge=0, le=999999)):
 
     def worker():
         try:
-            summary = run_simulation(chosen_seed, progress=emit)
+            summary = run_simulation(
+                chosen_seed, progress=emit, operating_point=profile
+            )
             summary["timing"]["wall_seconds"] = round(
                 summary["timing"].get("total_seconds", 0.0), 2
             )

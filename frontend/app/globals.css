@@ -1764,6 +1764,14 @@ button {
   color: var(--ink-2);
 }
 
+.sim-profile {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  border: 1px solid var(--hairline);
+}
+
 .sim-speed {
   display: inline-flex;
   padding: 2px;
