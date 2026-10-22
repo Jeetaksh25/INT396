@@ -139,6 +139,11 @@ def build_context_tables(detections, feature_frame):
 
 
 def assign_event_ids(context):
+    station_loud = context.groupby(["station_id", "timestamp"])["sensor_deviation"].transform(
+        "max"
+    )
+    context = context.copy()
+    context["station_max_deviation"] = station_loud.fillna(0.0)
     flagged = context[
         (context["is_local_anomaly"] == 1) | (context["coherent_weather"] == 1)
     ].copy()
@@ -174,7 +179,6 @@ def classify_group(group):
     )
     regional = mean_neighbour >= config.NEIGHBOUR_AGREEMENT_THRESHOLD
     sensors_loud = int(group["coherent_sensor_count"].max())
-
     if physics > 0 and sensors_loud < config.COHERENCE_SENSOR_COUNT:
         return "FAULT", "physics_inconsistent", mean_neighbour, single_sensor, duration
     if sensors_loud >= config.COHERENCE_SENSOR_COUNT:
@@ -230,6 +234,11 @@ def apply_event_labels(detection_frame, events_frame):
         labelled["is_extreme_flagged"] = np.zeros(len(labelled), dtype=int)
         return labelled
 
+    station_loud = labelled.groupby(["station_id", "timestamp"])["sensor_deviation"].transform(
+        "max"
+    )
+    labelled = labelled.copy()
+    labelled["station_max_deviation"] = station_loud.fillna(0.0)
     flagged = labelled[
         (labelled["is_local_anomaly"] == 1) | (labelled["coherent_weather"] == 1)
     ].copy()

@@ -6,11 +6,11 @@
     "longitude": 77.21,
     "status": "FAULT",
     "fault_events": 3,
-    "extreme_events": 0,
+    "extreme_events": 15,
     "anomalous_percent": 7.99,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "physics_inconsistent",
-    "total_events": 218,
+    "total_events": 413,
     "window_hours": 168
   },
   {
@@ -23,8 +23,8 @@
     "extreme_events": 0,
     "anomalous_percent": 0.0,
     "last_reading_at": "2023-12-31 23:00:00",
-    "last_fault_type": "isolated_or_erratic",
-    "total_events": 10,
+    "last_fault_type": "isolated_sensor",
+    "total_events": 155,
     "window_hours": 168
   },
   {
@@ -35,10 +35,10 @@
     "status": "FAULT",
     "fault_events": 7,
     "extreme_events": 0,
-    "anomalous_percent": 1.48,
+    "anomalous_percent": 1.63,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "physics_inconsistent",
-    "total_events": 328,
+    "total_events": 538,
     "window_hours": 168
   },
   {
@@ -52,7 +52,7 @@
     "anomalous_percent": 1.33,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "physics_inconsistent",
-    "total_events": 408,
+    "total_events": 625,
     "window_hours": 168
   },
   {
@@ -62,11 +62,11 @@
     "longitude": 75.79,
     "status": "FAULT",
     "fault_events": 5,
-    "extreme_events": 1,
-    "anomalous_percent": 1.04,
+    "extreme_events": 0,
+    "anomalous_percent": 0.74,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "isolated_sensor",
-    "total_events": 193,
+    "total_events": 269,
     "window_hours": 168
   },
   {
@@ -75,12 +75,12 @@
     "latitude": 22.57,
     "longitude": 88.36,
     "status": "FAULT",
-    "fault_events": 13,
-    "extreme_events": 0,
-    "anomalous_percent": 2.51,
+    "fault_events": 7,
+    "extreme_events": 12,
+    "anomalous_percent": 2.37,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "isolated_sensor",
-    "total_events": 394,
+    "total_events": 618,
     "window_hours": 168
   },
   {
@@ -94,7 +94,7 @@
     "anomalous_percent": 0.59,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "isolated_sensor",
-    "total_events": 10,
+    "total_events": 227,
     "window_hours": 168
   },
   {
@@ -103,12 +103,12 @@
     "latitude": 31.1,
     "longitude": 77.17,
     "status": "FAULT",
-    "fault_events": 2,
-    "extreme_events": 0,
-    "anomalous_percent": 0.3,
+    "fault_events": 3,
+    "extreme_events": 4,
+    "anomalous_percent": 0.44,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "isolated_sensor",
-    "total_events": 312,
+    "total_events": 543,
     "window_hours": 168
   }
 ]
