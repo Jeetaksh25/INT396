@@ -32,8 +32,7 @@
 | SLM | Shimla | 31.10 | 77.17 |
 
 The set spans hot arid (JAI), coastal humid (BOM, MAA), tropical (CCU, BLR), inland (HYD, DEL) and a
-cool hill station (SLM). That matters because the discriminator depends on stations disagreeing about
-weather but agreeing about genuine regional events.
+cool hill station (SLM), so the model is tested on climates it did not train on.
 
 ## Volume
 
@@ -42,36 +41,28 @@ weather but agreeing about genuine regional events.
 | Raw station-hours | 70,080 |
 | Tidy readings (station-hour-sensor) | 280,320 |
 | Stations | 8 |
-| Sensors | 4 (plus precipitation as auxiliary) |
-| Reference period (first 30%) | 84,096 readings |
+| Sensors | 4 |
 
 ## Preprocessing
 
-1. Each station is reindexed onto a strict hourly grid from `2023-01-01 00:00` to `2023-12-31 23:00`
-   (8,760 hours per station).
-2. Gaps of at most 2 hours are linearly interpolated on the **clean** series before fault injection.
-   This guarantees the only remaining missing values are the injected dropouts, so a NaN in the final
-   dataset is a label, not an accident.
-3. A row is dropped only if all four sensors are missing simultaneously.
-4. Values are stored as `float64`; humidity is integer-valued in the source and upcast on load.
-
-Interpolation counts per stage are recorded by `src/acquisition/build_dataset.py`, and the sample
-committed at `backend/data/samples/dataset_sample.csv` retains the exact output schema.
+1. Each station has 8,760 hourly rows from `2023-01-01 00:00` to `2023-12-31 23:00`.
+2. Gaps of at most 2 hours are linearly interpolated on the clean series before injection, so the
+   only missing values left are the injected dropouts.
+3. Faults and extremes are injected and every changed reading gets its label.
 
 ## Why synthetic faults
 
-ERA5 is a quality-controlled reanalysis: it does not contain failing instruments. Public weather
-networks do not publish labelled failure logs. The standard workaround, and the one used here, is to
-inject physically realistic faults into real weather so that a detector can be scored without ever
-training on labels. The weather remains real; only the fault episodes are authored.
+ERA5 is a quality-controlled reanalysis: it does not contain failing instruments, and public weather
+networks do not publish labelled failure logs. The standard workaround, used here, is to inject
+realistic faults and extremes into real weather. The weather stays real; only the episodes are
+authored, and the labels they produce are what the supervised model learns from.
 
-## Reproducing the pull
+## Reproducing
 
 ```bash
 cd backend
-python -m src.acquisition.fetch_open_meteo
-python -m src.acquisition.build_dataset
-python -m src.simulation.build_simulation
+python generate_data.py
+python model.py
 ```
 
-All randomness flows from `config.RANDOM_SEED = 42` and `RANDOM_SEED + 1` for fault injection.
+`generate_data.py` downloads any missing station CSV from Open-Meteo. All randomness uses seed 42.

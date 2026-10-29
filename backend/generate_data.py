@@ -49,7 +49,7 @@ def download(code):
         "start_date": "2023-01-01",
         "end_date": "2023-12-31",
         "hourly": "temperature_2m,relative_humidity_2m,wind_speed_10m,pressure_msl",
-        "timezone": "Asia/Kolkata",
+        "timezone": "GMT",
     }
     hourly = requests.get("https://archive-api.open-meteo.com/v1/archive", params=params, timeout=60).json()["hourly"]
     frame = pd.DataFrame({
