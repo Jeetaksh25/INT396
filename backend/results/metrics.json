@@ -1,0 +1,253 @@
+{
+  "generated_at": "2026-10-29T09:32:21.232083+00:00",
+  "task": "Supervised classification of every hourly sensor reading as normal, one of six sensor faults, or one of four genuine weather extremes",
+  "model": {
+    "name": "Random Forest",
+    "trees": 100,
+    "min_samples_leaf": 2,
+    "max_depth": 20,
+    "why": "Handles mixed feature scales without scaling, captures thresholds like flat-line counts, and gives feature importances to explain decisions"
+  },
+  "evaluation": "4-fold GroupKFold by station: every reading is predicted by a model that never saw its station",
+  "random_seed": 42,
+  "dataset": {
+    "stations": [
+      "DEL",
+      "BOM",
+      "MAA",
+      "HYD",
+      "JAI",
+      "CCU",
+      "BLR",
+      "SLM"
+    ],
+    "sensors": [
+      "temperature",
+      "humidity",
+      "wind_speed",
+      "pressure"
+    ],
+    "rows": 280320,
+    "start": "2023-01-01 00:00:00",
+    "end": "2023-12-31 23:00:00",
+    "source": "Open-Meteo Historical Weather API (ERA5) with injected fault and extreme labels",
+    "train_rows_per_fold": 210240,
+    "test_rows_per_fold": 70080
+  },
+  "label_counts": {
+    "total_readings": 280320,
+    "normal": 260759,
+    "fault": 10960,
+    "extreme": 8601
+  },
+  "class_counts": {
+    "normal": 260759,
+    "drift": 4761,
+    "heat_wave": 3918,
+    "cold_snap": 2994,
+    "precision": 2148,
+    "bias": 1886,
+    "stuck": 1183,
+    "storm": 933,
+    "heavy_rain": 756,
+    "dropout": 550,
+    "spike": 432
+  },
+  "features": [
+    "value_z",
+    "dev_day",
+    "dev_week",
+    "jump",
+    "noise_6h",
+    "noise_day",
+    "flat_6h",
+    "missing_6h",
+    "others_dev",
+    "others_week",
+    "temp_week",
+    "humid_week",
+    "wind_week",
+    "press_week",
+    "sensor_code",
+    "hour"
+  ],
+  "detailed": {
+    "accuracy": 0.9732,
+    "balanced_accuracy": 0.7377,
+    "macro_f1": 0.7762
+  },
+  "grouped": {
+    "accuracy": 0.9793,
+    "balanced_accuracy": 0.8335,
+    "macro_f1": 0.8773
+  },
+  "majority_baseline": 0.9302,
+  "range_check": {
+    "accuracy": 0.9429,
+    "balanced_accuracy": 0.4416,
+    "macro_f1": 0.4849
+  },
+  "per_class": {
+    "normal": {
+      "precision": 0.9835,
+      "recall": 0.9957,
+      "f1": 0.9895,
+      "support": 260759
+    },
+    "bias": {
+      "precision": 0.6315,
+      "recall": 0.5207,
+      "f1": 0.5708,
+      "support": 1886
+    },
+    "drift": {
+      "precision": 0.7252,
+      "recall": 0.6564,
+      "f1": 0.6891,
+      "support": 4761
+    },
+    "stuck": {
+      "precision": 0.968,
+      "recall": 0.8681,
+      "f1": 0.9153,
+      "support": 1183
+    },
+    "spike": {
+      "precision": 0.9885,
+      "recall": 0.9907,
+      "f1": 0.9896,
+      "support": 432
+    },
+    "precision": {
+      "precision": 0.8679,
+      "recall": 0.7095,
+      "f1": 0.7807,
+      "support": 2148
+    },
+    "dropout": {
+      "precision": 0.9945,
+      "recall": 0.9818,
+      "f1": 0.9881,
+      "support": 550
+    },
+    "heat_wave": {
+      "precision": 0.8634,
+      "recall": 0.6468,
+      "f1": 0.7395,
+      "support": 3918
+    },
+    "cold_snap": {
+      "precision": 0.8238,
+      "recall": 0.6887,
+      "f1": 0.7502,
+      "support": 2994
+    },
+    "storm": {
+      "precision": 0.8064,
+      "recall": 0.866,
+      "f1": 0.8351,
+      "support": 933
+    },
+    "heavy_rain": {
+      "precision": 0.605,
+      "recall": 0.1905,
+      "f1": 0.2897,
+      "support": 756
+    }
+  },
+  "group_confusion": {
+    "labels": [
+      "normal",
+      "fault",
+      "extreme"
+    ],
+    "matrix": [
+      [
+        259627,
+        469,
+        663
+      ],
+      [
+        1647,
+        9100,
+        213
+      ],
+      [
+        2711,
+        88,
+        5802
+      ]
+    ]
+  },
+  "per_station": {
+    "DEL": {
+      "accuracy": 0.9776,
+      "balanced_accuracy": 0.7882,
+      "macro_f1": 0.8591
+    },
+    "BOM": {
+      "accuracy": 0.9842,
+      "balanced_accuracy": 0.8716,
+      "macro_f1": 0.9016
+    },
+    "MAA": {
+      "accuracy": 0.9799,
+      "balanced_accuracy": 0.8841,
+      "macro_f1": 0.8906
+    },
+    "HYD": {
+      "accuracy": 0.9815,
+      "balanced_accuracy": 0.8017,
+      "macro_f1": 0.8626
+    },
+    "JAI": {
+      "accuracy": 0.9748,
+      "balanced_accuracy": 0.7997,
+      "macro_f1": 0.844
+    },
+    "CCU": {
+      "accuracy": 0.982,
+      "balanced_accuracy": 0.8763,
+      "macro_f1": 0.9123
+    },
+    "BLR": {
+      "accuracy": 0.9764,
+      "balanced_accuracy": 0.8323,
+      "macro_f1": 0.8628
+    },
+    "SLM": {
+      "accuracy": 0.9783,
+      "balanced_accuracy": 0.8105,
+      "macro_f1": 0.8684
+    }
+  },
+  "feature_importance": {
+    "dev_week": 0.2089,
+    "temp_week": 0.1322,
+    "value_z": 0.1233,
+    "noise_day": 0.0904,
+    "noise_6h": 0.0752,
+    "wind_week": 0.0731,
+    "press_week": 0.0612,
+    "sensor_code": 0.0451,
+    "humid_week": 0.0435,
+    "flat_6h": 0.0418,
+    "others_week": 0.0366,
+    "dev_day": 0.0223,
+    "missing_6h": 0.0203,
+    "jump": 0.0139,
+    "others_dev": 0.0076,
+    "hour": 0.0047
+  },
+  "events": {
+    "count": 864,
+    "fault_events": 592,
+    "extreme_events": 272,
+    "correct_events": 0.7998
+  },
+  "timing": {
+    "features_seconds": 1.2,
+    "cross_validation_seconds": 141.6,
+    "total_seconds": 200.5
+  }
+}

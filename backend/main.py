@@ -1,21 +1,22 @@
 import json
-import queue
-import threading
-from pathlib import Path
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-import config
-from src.simulation.live_simulation import run_simulation
+from generate_data import STATIONS
+from model import RESULTS
 
-app = FastAPI(title="INT396 Sensor Fault API", version="1.0.0")
+DETECTIONS_CSV = RESULTS / "detections.csv"
+EVENTS_CSV = RESULTS / "detection_events.csv"
+STATION_HEALTH_JSON = RESULTS / "station_health.json"
+METRICS_JSON = RESULTS / "metrics.json"
+
+app = FastAPI(title="INT396 Sensor Fault Classifier API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=config.FRONTEND_ORIGINS,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -34,11 +35,11 @@ def read_json(path):
 
 
 def load_detections():
-    modified = config.DETECTIONS_CSV.stat().st_mtime if config.DETECTIONS_CSV.exists() else 0
+    modified = DETECTIONS_CSV.stat().st_mtime if DETECTIONS_CSV.exists() else 0
     if _detection_cache.get("mtime") != modified:
-        if not config.DETECTIONS_CSV.exists():
+        if not DETECTIONS_CSV.exists():
             raise HTTPException(status_code=503, detail="detections.csv not generated yet")
-        frame = pd.read_csv(config.DETECTIONS_CSV, parse_dates=["timestamp"])
+        frame = pd.read_csv(DETECTIONS_CSV, parse_dates=["timestamp"])
         _detection_cache["mtime"] = modified
         _detection_cache["frame"] = frame
     return _detection_cache["frame"]
@@ -51,25 +52,25 @@ def health():
 
 @app.get("/api/metrics")
 def metrics():
-    modified = config.METRICS_JSON.stat().st_mtime if config.METRICS_JSON.exists() else 0
+    modified = METRICS_JSON.stat().st_mtime if METRICS_JSON.exists() else 0
     if _metrics_cache.get("mtime") != modified:
         _metrics_cache["mtime"] = modified
-        _metrics_cache["data"] = read_json(config.METRICS_JSON)
+        _metrics_cache["data"] = read_json(METRICS_JSON)
     return _metrics_cache["data"]
 
 
 @app.get("/api/stations")
 def stations():
-    modified = config.STATION_HEALTH_JSON.stat().st_mtime if config.STATION_HEALTH_JSON.exists() else 0
+    modified = STATION_HEALTH_JSON.stat().st_mtime if STATION_HEALTH_JSON.exists() else 0
     if _health_cache.get("mtime") != modified:
         _health_cache["mtime"] = modified
-        _health_cache["data"] = read_json(config.STATION_HEALTH_JSON)
+        _health_cache["data"] = read_json(STATION_HEALTH_JSON)
     return _health_cache["data"]
 
 
 @app.get("/api/stations/{station_id}")
 def station_detail(station_id: str, hours: int = Query(default=168, ge=1, le=8760)):
-    if station_id not in config.STATION_REGISTRY:
+    if station_id not in STATIONS:
         raise HTTPException(status_code=404, detail="unknown station")
     health_rows = stations()
     station_health = next(
@@ -137,7 +138,7 @@ def station_detail(station_id: str, hours: int = Query(default=168, ge=1, le=876
 
 @app.get("/api/stations/{station_id}/series")
 def station_series(station_id: str, days: int = Query(default=30, ge=1, le=365)):
-    if station_id not in config.STATION_REGISTRY:
+    if station_id not in STATIONS:
         raise HTTPException(status_code=404, detail="unknown station")
 
     frame = load_detections()
@@ -163,7 +164,7 @@ def station_series(station_id: str, days: int = Query(default=30, ge=1, le=365))
             "baseline_flag": [int(value) for value in group["baseline_flag"]],
         }
 
-    events_path = config.EVENTS_CSV
+    events_path = EVENTS_CSV
     events = []
     if events_path.exists():
         events_frame = pd.read_csv(events_path, parse_dates=["start", "end"])
@@ -235,9 +236,9 @@ def events(
     station_id: str | None = Query(default=None),
     limit: int = Query(default=100, ge=1, le=1000),
 ):
-    if not config.EVENTS_CSV.exists():
+    if not EVENTS_CSV.exists():
         raise HTTPException(status_code=503, detail="events not generated yet")
-    frame = pd.read_csv(config.EVENTS_CSV, parse_dates=["start", "end"])
+    frame = pd.read_csv(EVENTS_CSV, parse_dates=["start", "end"])
     if label:
         frame = frame[frame["label"].str.upper() == label.upper()]
     if station_id:
@@ -265,77 +266,4 @@ def events(
 
 @app.get("/api/model")
 def model_card():
-    return read_json(config.RESULTS_DIR / "model_card.json")
-
-
-@app.get("/api/rules")
-def weather_rules():
-    path = config.RESULTS_DIR / "association_rules.json"
-    return read_json(path)
-
-
-_simulation_cache = {}
-
-
-@app.get("/api/simulation/run")
-def simulation_run(
-    seed: int = Query(default=None, ge=0, le=999999),
-    profile: str = Query(default="balanced"),
-):
-    import time as _time
-
-    chosen_seed = int(seed if seed is not None else (_time.time() * 1000) % 1000000)
-    started = _time.time()
-    summary = run_simulation(chosen_seed, operating_point=profile)
-    summary["timing"]["wall_seconds"] = round(_time.time() - started, 2)
-    return summary
-
-
-@app.get("/api/simulation/events")
-def simulation_events(
-    seed: int = Query(default=0, ge=0, le=999999),
-    profile: str = Query(default="balanced"),
-):
-    chosen_seed = seed or 1
-    channel = queue.Queue()
-
-    def emit(phase, fraction, detail):
-        channel.put({"phase": phase, "fraction": round(float(fraction), 3), "detail": detail})
-
-    def worker():
-        try:
-            summary = run_simulation(
-                chosen_seed, progress=emit, operating_point=profile
-            )
-            summary["timing"]["wall_seconds"] = round(
-                summary["timing"].get("total_seconds", 0.0), 2
-            )
-            channel.put({"phase": "complete", "fraction": 1.0, "result": summary})
-        except Exception as error:
-            channel.put({"phase": "failed", "fraction": 1.0, "detail": str(error)})
-        finally:
-            channel.put(None)
-
-    threading.Thread(target=worker, daemon=True).start()
-
-    def stream():
-        while True:
-            item = channel.get()
-            if item is None:
-                break
-            yield f"data: {json.dumps(item)}\n\n"
-
-    return StreamingResponse(
-        stream(),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
-
-
-@app.get("/api/rerun")
-def rerun_info():
-    return {
-        "status": "manual",
-        "command": "python -m src.evaluation.run_experiment",
-        "note": "run the command from the backend directory to regenerate results",
-    }
+    return metrics()
