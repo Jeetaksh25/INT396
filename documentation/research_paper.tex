@@ -1,0 +1,442 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{hyperref}
+
+\definecolor{forest}{HTML}{2A78D6}
+\definecolor{neutral}{HTML}{8A8880}
+\definecolor{seriesb}{HTML}{EB6834}
+
+\begin{document}
+
+\title{Unsupervised Detection of Sensor Faults and Weather Extremes in Automatic Weather Station Networks with a Supervised Booster}
+
+\author{\IEEEauthorblockN{Jeetaksh Luhaniwal}
+\IEEEauthorblockA{B.Tech CSE (AI/ML)\\
+Lovely Professional University\\
+Phagwara, Punjab, India\\
+manojjeetakshluhaniwal25@gmail.com}}
+
+\maketitle
+
+\begin{abstract}
+A faulty sensor in an automatic weather station quietly corrupts every forecast and alert built on
+it, yet a genuine heat wave or storm can look just as unusual as a broken instrument. We study this
+problem on one year of hourly ERA5 reanalysis for eight Indian cities (280{,}320 readings over four
+sensors), augmented with six injected sensor-fault types and four seasonal, physically coherent
+extreme-weather types. Four unsupervised detectors (Isolation Forest, Local Outlier Factor, k-Means
+distance and PCA reconstruction error) vote on every reading, and a cross-sensor coherence rule
+separates faults from extremes. On its own this unsupervised stage reaches 91.8\% accuracy, 49.8\%
+balanced accuracy and a macro F1 of 0.528 on the normal/fault/extreme task. Adding a small
+supervised Random Forest booster, which takes the detector scores as inputs and is trained on the
+injected labels, raises these to 97.9\%, 82.4\% and 0.876 under station-grouped cross-validation. We
+report the majority-class baseline (93.0\%) and an operational range check alongside every figure.
+\end{abstract}
+
+\begin{IEEEkeywords}
+unsupervised learning, anomaly detection, isolation forest, sensor faults, weather stations,
+random forest.
+\end{IEEEkeywords}
+
+\section{Introduction}
+Automatic weather stations feed numerical forecasts, agricultural advisories and disaster warnings.
+When a sensor fails loudly, for example by reporting a temperature of 200\,\textdegree C, a fixed
+range check catches it. Most failures are quieter: a sensor sticks at one value, drifts by a few
+degrees over a week, or loses precision. These readings stay inside physical limits and pass
+unnoticed.
+
+The opposite error matters just as much. A heat wave pushes temperature far above its seasonal
+level, and a check that flags every unusual reading would discard exactly the data that disaster
+response needs. A useful system must answer two questions for every reading: \emph{is it unusual},
+and \emph{is the instrument at fault or is the weather genuinely extreme}.
+
+Labelled failure logs are rarely available, which makes unsupervised anomaly detection the natural
+starting point. The contributions of this paper are:
+\begin{itemize}
+\item a benchmark built by injecting realistic faults and seasonal extremes into one year of real
+ERA5 weather for eight climatically diverse Indian stations;
+\item an unsupervised pipeline of four classical detectors combined by voting, with a cross-sensor
+coherence rule that separates faults from extremes;
+\item a measurement of how much a small supervised booster, stacked on the unsupervised scores,
+improves the result when labelled examples are available.
+\end{itemize}
+
+\section{Related Work}
+Sensor faults in environmental networks have been catalogued by Ni \emph{et al.}~\cite{ni2009} and
+measured in real deployments by Sharma \emph{et al.}~\cite{sharma2010}, who identify short spikes,
+constant (stuck) readings and noise as the most common types. Operational meteorology relies on
+rule-based quality control such as range, step and persistence tests~\cite{wmo2004,durre2010}. These
+rules are transparent but cannot tell a real extreme from a fault.
+
+Unsupervised anomaly detection~\cite{chandola2009} includes isolation-based methods~\cite{liu2008},
+density-based methods such as Local Outlier Factor~\cite{breunig2000}, clustering distance and
+subspace reconstruction error. Combining several detectors improves robustness~\cite{aggarwal2017}.
+When some labels exist, stacking a supervised learner on unsupervised outlier scores is an
+established way to improve detection~\cite{micenkova2014}, and tree ensembles such as Random
+Forests~\cite{breiman2001} are a strong default for tabular data~\cite{grinsztajn2022}. Because
+labelled failure logs are rarely published, fault injection into clean data is the standard way to
+build benchmarks~\cite{sharma2010}.
+
+\section{System Overview}
+Fig.~\ref{fig:pipeline} shows the pipeline. \texttt{generate\_data.py} builds the dataset,
+\texttt{model.py} computes features and runs the unsupervised detectors, and \texttt{booster.py}
+holds the supervised refinement stage. The results are served to a web dashboard.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize,
+  card/.style={draw=gray!55, fill=white, rounded corners=3pt, align=center,
+    text width=3.1cm, minimum height=0.95cm, inner sep=3pt, line width=0.5pt},
+  unsupcard/.style={card, draw=forest, fill=forest!12, line width=0.9pt},
+  boostcard/.style={card, draw=seriesb!75, fill=seriesb!9},
+  flow/.style={-{Stealth[length=1.7mm, width=1.5mm]}, line width=0.6pt, draw=gray!70}
+]
+\node[card] (a) {\textbf{ERA5 weather}\\[1pt]{\tiny 8 stations, 2023, hourly}};
+\node[card, right=0.6cm of a] (b) {\textbf{Fault and extreme injection}\\[1pt]{\tiny 6 faults, 4 extremes}};
+\node[card, below=0.5cm of b] (c) {\textbf{Feature building}\\[1pt]{\tiny 16 features per reading}};
+\node[unsupcard, below=0.5cm of a] (d) {\textbf{Unsupervised detectors}\\[1pt]{\tiny IF, LOF, k-Means, PCA vote}};
+\node[boostcard, below=0.5cm of d] (e) {\textbf{Supervised booster}\\[1pt]{\tiny Random Forest on scores}};
+\node[card, below=0.5cm of c] (f) {\textbf{Dashboard}\\[1pt]{\tiny stations, events, model card}};
+\draw[flow] (a) -- (b);
+\draw[flow] (b) -- (c);
+\draw[flow] (c) -- (d);
+\draw[flow] (d) -- (e);
+\draw[flow] (e) -- (f);
+\end{tikzpicture}
+\caption{Pipeline from raw weather to the dashboard. The blue stage uses no labels; the orange
+booster is trained on the injected labels.}
+\label{fig:pipeline}
+\end{figure}
+
+\section{Data}
+\subsection{Weather readings}
+Hourly temperature, relative humidity, 10\,m wind speed and mean sea-level pressure for 2023 were
+taken from the Open-Meteo archive~\cite{openmeteo}, which serves ERA5 reanalysis~\cite{hersbach2020}.
+The eight stations (Delhi, Mumbai, Chennai, Hyderabad, Jaipur, Kolkata, Bengaluru, Shimla) cover
+arid, coastal, tropical, inland and hill climates. Each station has 8{,}760 hours, giving
+280{,}320 sensor readings. Gaps of at most two hours were linearly interpolated before injection, so
+the only missing values left are injected dropouts.
+
+\subsection{Injected faults}
+Faults affect one sensor at a time, as a real failing instrument does. Each station receives five
+episodes of each type at random, non-overlapping times. With $\sigma$ the standard deviation of the
+sensor at that station:
+\begin{itemize}
+\item \emph{bias}: a constant offset of $4$--$7\sigma$ for 24--72\,h;
+\item \emph{drift}: an offset growing linearly from $1.5\sigma$ to $5$--$8\sigma$ over 3--7 days;
+\item \emph{stuck}: the first value repeated for 12--48\,h;
+\item \emph{spike}: about 15\% of hours in a window offset by $6$--$10\sigma$;
+\item \emph{precision}: rounding to a step of $0.8$--$1.5\sigma$ plus Gaussian noise;
+\item \emph{dropout}: missing readings for 6--24\,h.
+\end{itemize}
+
+\subsection{Injected extremes}
+Extremes move several sensors together and occur only in their usual season. Each station receives
+two of each. The effect follows a half-sine bump over the event, and only hours above 30\% of the
+peak are labelled, because the edges are indistinguishable from normal weather. Heat waves
+(April--June) raise temperature by about 11\,\textdegree C and lower humidity and pressure; cold
+snaps (December--February) lower temperature and raise wind and humidity; storms (June--October)
+raise wind and humidity and drop pressure by about 14\,hPa; heavy rain (June--September) saturates
+humidity and cools the air.
+
+Table~\ref{tab:data} gives the resulting class balance.
+
+\begin{table}[t]
+\caption{Dataset composition}
+\label{tab:data}
+\centering
+\begin{tabular}{@{}lrlr@{}}
+\toprule
+Class & Readings & Class & Readings \\
+\midrule
+normal    & 260{,}759 & dropout    & 550 \\
+drift     & 4{,}761   & spike      & 432 \\
+precision & 2{,}148   & heat wave  & 3{,}918 \\
+bias      & 1{,}886   & cold snap  & 2{,}994 \\
+stuck     & 1{,}183   & storm      & 933 \\
+          &           & heavy rain & 756 \\
+\midrule
+\multicolumn{4}{@{}l}{normal 93.0\% \quad fault 3.9\% \quad extreme 3.1\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Methodology}
+\subsection{Features}
+Every feature is computed per station and sensor from the measured values only. Missing values are
+forward-filled for the arithmetic and counted separately. Windows are centred, since the system
+analyses a completed record. Table~\ref{tab:features} lists the sixteen features; the unsupervised
+detectors use the fourteen numeric ones, leaving out sensor identity and hour.
+
+\begin{table}[t]
+\caption{Features computed for every reading}
+\label{tab:features}
+\centering
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}p{5.6cm}@{}}
+\toprule
+Feature & Definition \\
+\midrule
+value\_z & reading standardised by station and sensor \\
+dev\_day & reading minus 24\,h median, in $\sigma$ \\
+dev\_week & 24\,h median minus 14-day median, in $\sigma$ \\
+jump & change from the previous hour, in $\sigma$ \\
+noise\_6h, noise\_day & std of hourly changes over 6\,h and 24\,h \\
+flat\_6h & identical consecutive readings in 6\,h \\
+missing\_6h & missing readings in 6\,h \\
+others\_dev, others\_week & mean $|$dev\_day$|$ and $|$dev\_week$|$ of the other three sensors \\
+temp/humid/wind/ press\_week & dev\_week of each sensor at the same station and hour \\
+sensor\_code, hour & sensor identity and hour of day \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Unsupervised detectors}
+The numeric features are standardised, and four detectors from scikit-learn~\cite{pedregosa2011}
+are fitted on a random sample of 20{,}000 readings without any label:
+\begin{itemize}
+\item \emph{Isolation Forest}~\cite{liu2008} with 200 trees; the score is the negative mean path
+length;
+\item \emph{Local Outlier Factor}~\cite{breunig2000} with 20 neighbours in novelty mode;
+\item \emph{k-Means} with 8 clusters; the score is the distance to the nearest centroid;
+\item \emph{PCA} keeping 90\% of the variance (11 components); the score is the squared
+reconstruction error.
+\end{itemize}
+Each detector votes for a reading when its score lies in its top 5\%. A reading with at least two
+of four votes is flagged. A flagged reading is labelled an \emph{extreme} when the other sensors of
+the same station are also moving (others\_week $> 0.5\sigma$) and a \emph{fault} otherwise, because a
+failing instrument moves alone while weather moves several sensors together.
+
+\subsection{Supervised booster}
+The unsupervised stage cannot learn which pattern of scores corresponds to which class. When
+labelled examples are available, a small supervised model can add this. We stack a Random
+Forest~\cite{breiman2001} with 100 trees, maximum depth 20 and at least two samples per leaf on top
+of the detectors: its inputs are the sixteen features, the four detector scores and the vote count,
+and it predicts one of the eleven classes. This follows the idea of learning from unsupervised
+outlier scores~\cite{micenkova2014}.
+
+\subsection{Evaluation protocol}
+Neighbouring hours are nearly identical, so a random row split would place almost the same reading
+in both training and test sets. The booster is therefore evaluated with 4-fold GroupKFold using the
+station as the group: each fold trains on six stations and predicts the remaining
+two~\cite{roberts2017}, so every reading receives an out-of-station prediction.
+
+Because the classes are imbalanced~\cite{he2009}, we report accuracy with balanced accuracy (mean
+per-class recall) and macro F1. Two baselines are used: always predicting \emph{normal}, and an
+operational range check that labels a reading as a fault when it is missing or outside fixed limits
+(temperature $-5$ to $45$\,\textdegree C, humidity 0--100\%, wind 0--120\,km/h, pressure
+950--1050\,hPa).
+
+\section{Results}
+\subsection{Overall performance}
+Table~\ref{tab:main} compares the stages. The unsupervised detectors improve balanced accuracy over
+the range check (49.8\% against 44.2\%) and macro F1 (0.528 against 0.485), but they flag 5.2\% of
+all readings, so their plain accuracy (91.8\%) falls below the majority baseline. Adding the
+supervised booster raises accuracy to 97.9\%, balanced accuracy to 82.4\% and macro F1 to 0.876. On
+the full eleven-class task the boosted model reaches 97.3\% accuracy and a macro F1 of 0.773.
+
+\begin{table}[t]
+\caption{Results on the normal/fault/extreme task}
+\label{tab:main}
+\centering
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Method & Accuracy & Bal.\ acc. & Macro F1 \\
+\midrule
+Always normal              & 93.0\% & 33.3\% & 0.321 \\
+Range check                & 94.3\% & 44.2\% & 0.485 \\
+Unsupervised detectors     & 91.8\% & 49.8\% & 0.528 \\
+\quad + supervised booster & \textbf{97.9\%} & \textbf{82.4\%} & \textbf{0.876} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For the boosted model, per-station accuracy ranges from 97.4\% (Jaipur) to 98.5\% (Mumbai), and
+per-station macro F1 from 0.837 to 0.905, so performance carries over to climates the booster did not
+train on.
+
+\subsection{Confusion between groups}
+Table~\ref{tab:cm} shows the three-group confusion matrices. The unsupervised stage finds 39.1\% of
+fault readings but only 13.7\% of extreme readings, and raises alarms on 3.4\% of normal readings.
+The booster cuts false alarms to 0.3\% and lifts recall to 83.2\% for faults and 64.3\% for
+extremes. Its main remaining error is missed extremes, mostly from the shoulders of long events and
+from short heavy-rain episodes.
+
+\begin{table}[t]
+\caption{Confusion matrices (rows: truth, share of row)}
+\label{tab:cm}
+\centering
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+ & Truth & Normal & Fault & Extreme \\
+\midrule
+Unsupervised & Normal  & \textbf{96.6\%} & 0.9\% & 2.5\% \\
+             & Fault   & 59.1\% & \textbf{39.1\%} & 1.7\% \\
+             & Extreme & 85.1\% & 1.2\% & \textbf{13.7\%} \\
+\midrule
++ booster    & Normal  & \textbf{99.7\%} & 0.2\% & 0.2\% \\
+             & Fault   & 15.2\% & \textbf{83.2\%} & 1.6\% \\
+             & Extreme & 34.9\% & 0.8\% & \textbf{64.3\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Per-class behaviour}
+Fig.~\ref{fig:perclass} shows recall and precision for each class after boosting. Faults with a
+sharp signature are almost always found: spike (99\%), dropout (98\%) and stuck (86\%). Slow faults
+are harder: drift (68\%) and bias (50\%) can resemble a genuine change in the weather. Among
+extremes, storms (81\%) are clearest, while heavy rain (19\%) is short and looks like an ordinary
+humid day.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  xbar, width=0.95\columnwidth, height=7.2cm,
+  bar width=3pt, xmin=0, xmax=100,
+  xlabel={\%}, xlabel style={font=\scriptsize},
+  symbolic y coords={heavy rain,bias,heat wave,cold snap,drift,precision,storm,stuck,dropout,spike,normal},
+  ytick=data, y tick label style={font=\scriptsize},
+  x tick label style={font=\scriptsize},
+  legend style={font=\scriptsize, at={(0.98,0.02)}, anchor=south east, draw=none},
+  enlarge y limits=0.05, axis x line*=bottom, axis y line*=left,
+  xmajorgrids, grid style={gray!20}
+]
+\addplot[fill=forest, draw=none] coordinates {
+  (19.1,heavy rain) (50.4,bias) (60.9,heat wave) (66.2,cold snap) (67.7,drift)
+  (70.2,precision) (81.2,storm) (85.6,stuck) (98.0,dropout) (98.8,spike) (99.7,normal)};
+\addplot[fill=neutral!60, draw=none] coordinates {
+  (62.6,heavy rain) (65.0,bias) (89.2,heat wave) (84.7,cold snap) (73.9,drift)
+  (86.0,precision) (84.0,storm) (96.9,stuck) (99.1,dropout) (99.1,spike) (98.2,normal)};
+\legend{Recall, Precision}
+\end{axis}
+\end{tikzpicture}
+\caption{Per-class recall and precision of the boosted model under station-grouped
+cross-validation.}
+\label{fig:perclass}
+\end{figure}
+
+\subsection{What the booster relies on}
+Fig.~\ref{fig:importance} shows the twelve most important booster inputs by mean decrease in
+impurity. The slow deviation \texttt{dev\_week} leads (16.5\%), followed by the station's
+temperature trend (10.9\%) and the standardised value (10.5\%). The k-Means distance (6.3\%) and the
+Isolation Forest score (5.5\%) rank among the top seven, and the five unsupervised inputs together
+account for 17.9\% of the importance, showing that the booster builds on the detectors rather than
+replacing them.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  xbar, width=0.8\columnwidth, height=5.6cm,
+  bar width=4pt, xmin=0, xmax=20,
+  xlabel={Importance (\%)}, xlabel style={font=\scriptsize},
+  ytick={1,...,12},
+  yticklabels={sensor\_code,flat\_6h,others\_week,press\_week,noise\_6h,isolation,wind\_week,kmeans,noise\_day,value\_z,temp\_week,dev\_week},
+  y tick label style={font=\scriptsize\ttfamily},
+  x tick label style={font=\scriptsize},
+  ymin=0.4, ymax=12.6, axis x line*=bottom, axis y line*=left,
+  xmajorgrids, grid style={gray!20},
+  nodes near coords, nodes near coords style={font=\tiny, text=gray!70!black},
+  point meta=x
+]
+\addplot[fill=forest, draw=none] coordinates {
+  (3.7,1) (4.0,2) (4.2,3) (4.7,4) (5.3,5) (5.5,6) (5.5,7) (6.3,8)
+  (7.4,9) (10.5,10) (10.9,11) (16.5,12)};
+\end{axis}
+\end{tikzpicture}
+\caption{The twelve most important booster inputs. \texttt{kmeans} and \texttt{isolation} are
+unsupervised detector scores.}
+\label{fig:importance}
+\end{figure}
+
+\subsection{Episodes}
+Consecutive flagged hours on one sensor, with gaps of at most three hours, are merged into episodes
+for the dashboard. The boosted model produces 879 episodes (594 fault, 285 extreme), and 80.3\% of
+them carry the correct group.
+
+\section{Discussion}
+The unsupervised detectors do what they are designed for: they rank unusual readings without any
+label and already beat the range check on balanced accuracy and macro F1. Their weakness is the
+decision step. A fixed vote threshold flags many unusual but healthy readings, and a single
+coherence rule cannot capture the different signatures of the ten event types. The booster learns
+exactly this decision from labelled examples, and the importance analysis shows that it still draws
+on the detector scores.
+
+Accuracy alone is a weak summary here: a model that never flags anything already scores 93.0\%,
+higher than the unsupervised stage. Balanced accuracy and macro F1 show the real progression from
+range check to unsupervised detectors to the boosted model.
+
+\section{Limitations}
+The faults and extremes are injected, so their magnitudes and shapes are authored, and real failures
+may be subtler. The booster is trained on these injected labels, so the boosted figures should be
+read as an upper bound for a live network until the model is retrained on logged failures. The vote
+and coherence thresholds of the unsupervised stage were chosen by comparing a small grid of values
+against the labels, so even that stage is not entirely free of label information. The weather itself
+is reanalysis rather than raw station data, which is smoother than real observations, and centred
+windows use a few future hours, which suits offline auditing but not real-time alerts.
+
+\section{Conclusion}
+Four classical unsupervised detectors, combined by voting and a cross-sensor coherence rule, detect
+sensor faults and weather extremes without labels, reaching 91.8\% accuracy, 49.8\% balanced
+accuracy and a macro F1 of 0.528 across eight Indian stations. Adding a small supervised Random
+Forest booster on top of the detector scores raises performance to 97.9\% accuracy, 82.4\% balanced
+accuracy and a macro F1 of 0.876 under station-grouped cross-validation. Future work will add real
+station observations, logged instrument failures and trailing-window features for online
+monitoring.
+
+\section*{Acknowledgment}
+The author thanks the faculty of the School of Computer Science and Engineering, Lovely Professional
+University, for guidance during the INT-396 course, and the Open-Meteo and ECMWF teams for open
+access to the weather data.
+
+\begin{thebibliography}{00}
+\bibitem{ni2009} K. Ni \emph{et al.}, ``Sensor network data fault types,'' \emph{ACM Trans. Sensor
+Netw.}, vol. 5, no. 3, pp. 1--29, 2009.
+\bibitem{sharma2010} A. B. Sharma, L. Golubchik, and R. Govindan, ``Sensor faults: Detection methods
+and prevalence in real-world datasets,'' \emph{ACM Trans. Sensor Netw.}, vol. 6, no. 3, pp. 1--39,
+2010.
+\bibitem{wmo2004} I. Zahumensk\'{y}, ``Guidelines on quality control procedures for data from
+automatic weather stations,'' World Meteorological Organization, Geneva, 2004.
+\bibitem{durre2010} I. Durre, M. J. Menne, B. E. Gleason, T. G. Houston, and R. S. Vose,
+``Comprehensive automated quality assurance of daily surface observations,'' \emph{J. Appl.
+Meteorol. Climatol.}, vol. 49, no. 8, pp. 1615--1633, 2010.
+\bibitem{chandola2009} V. Chandola, A. Banerjee, and V. Kumar, ``Anomaly detection: A survey,''
+\emph{ACM Comput. Surv.}, vol. 41, no. 3, pp. 1--58, 2009.
+\bibitem{liu2008} F. T. Liu, K. M. Ting, and Z.-H. Zhou, ``Isolation forest,'' in \emph{Proc. IEEE
+Int. Conf. Data Mining}, 2008, pp. 413--422.
+\bibitem{breunig2000} M. M. Breunig, H.-P. Kriegel, R. T. Ng, and J. Sander, ``LOF: Identifying
+density-based local outliers,'' in \emph{Proc. ACM SIGMOD}, 2000, pp. 93--104.
+\bibitem{aggarwal2017} C. C. Aggarwal, \emph{Outlier Analysis}, 2nd ed. Cham, Switzerland: Springer,
+2017.
+\bibitem{micenkova2014} B. Micenkov\'{a}, B. McWilliams, and I. Assent, ``Learning outlier ensembles:
+The best of both worlds -- supervised and unsupervised,'' in \emph{Proc. ACM SIGKDD Workshop on
+Outlier Detection and Description}, 2014.
+\bibitem{grinsztajn2022} L. Grinsztajn, E. Oyallon, and G. Varoquaux, ``Why do tree-based models
+still outperform deep learning on typical tabular data?'' in \emph{Proc. NeurIPS Datasets and
+Benchmarks}, 2022.
+\bibitem{breiman2001} L. Breiman, ``Random forests,'' \emph{Mach. Learn.}, vol. 45, no. 1,
+pp. 5--32, 2001.
+\bibitem{openmeteo} P. Zippenfenig, ``Open-Meteo.com Weather API,'' Zenodo, 2023,
+doi: 10.5281/zenodo.7970649.
+\bibitem{hersbach2020} H. Hersbach \emph{et al.}, ``The ERA5 global reanalysis,'' \emph{Q. J. R.
+Meteorol. Soc.}, vol. 146, no. 730, pp. 1999--2049, 2020.
+\bibitem{pedregosa2011} F. Pedregosa \emph{et al.}, ``Scikit-learn: Machine learning in Python,''
+\emph{J. Mach. Learn. Res.}, vol. 12, pp. 2825--2830, 2011.
+\bibitem{roberts2017} D. R. Roberts \emph{et al.}, ``Cross-validation strategies for data with
+temporal, spatial, hierarchical, or phylogenetic structure,'' \emph{Ecography}, vol. 40, no. 8,
+pp. 913--929, 2017.
+\bibitem{he2009} H. He and E. A. Garcia, ``Learning from imbalanced data,'' \emph{IEEE Trans. Knowl.
+Data Eng.}, vol. 21, no. 9, pp. 1263--1284, 2009.
+\end{thebibliography}
+
+\end{document}

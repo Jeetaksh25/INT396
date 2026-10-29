@@ -6,12 +6,16 @@ import { TopBar } from "@/components/top-bar";
 import { BlurFade } from "@/components/ui/blur-fade";
 
 const reasonCopy: Record<string, string> = {
-  physics_inconsistent: "A hard physical rule was violated, so the instrument cannot be reporting weather.",
-  isolated_sensor: "One sensor deviates while its neighbours at the same station stay normal.",
-  coherent_multi_sensor: "Several sensors move together, the signature of a real weather event.",
-  coherent_regional: "Sensors move together and nearby stations agree, so the event is regional.",
-  sustained_regime: "The deviation persists at a stable level long enough to be a regime change.",
-  isolated_or_erratic: "No coherence signal survived, so the episode defaults to a fault.",
+  bias: "The sensor reads a constant offset away from the truth.",
+  drift: "The offset grows slowly over days.",
+  stuck: "The sensor keeps reporting the same value.",
+  spike: "Isolated readings jump far from their neighbours.",
+  precision: "Readings are coarsely rounded and noisy.",
+  dropout: "Readings are missing.",
+  heat_wave: "Temperature rises while humidity and pressure fall across the station.",
+  cold_snap: "Temperature drops while wind and humidity rise.",
+  storm: "Wind rises sharply while pressure falls.",
+  heavy_rain: "Humidity saturates while temperature dips.",
 };
 
 export default async function EventsPage() {
@@ -41,8 +45,8 @@ export default async function EventsPage() {
       <TopBar />
       <PageHead
         size="large"
-        title="What the rule tree decided"
-        description="Consecutive flagged hours are grouped into episodes. Each episode gets one verdict from three consistency signals: cross-sensor coherence, neighbour agreement, and physical plausibility."
+        title="What the model decided"
+        description="Consecutive flagged hours on one sensor are grouped into episodes. Each episode takes the class predicted most often inside it after the booster refines the unsupervised flags."
         aside={
           <>
             <span>{events.length} episodes</span>
@@ -109,19 +113,19 @@ export default async function EventsPage() {
             <BlurFade delay={0.14} duration={0.32} offset={14}>
               <div className="metric">
                 <div className="metric-top">
-                  <span className="metric-label">Distinct reason codes</span>
+                  <span className="metric-label">Distinct classes</span>
                 </div>
                 <div className="metric-value">
                   <TickedNumber value={reasonCounts.length} />
                 </div>
                 <div className="metric-foot">
-                  <span>in the rule tree</span>
+                  <span>predicted by the model</span>
                 </div>
               </div>
             </BlurFade>
           </div>
 
-          <Section title="Verdict distribution" note="Which branch of the rule tree fired.">
+          <Section title="Verdict distribution" note="Which class the model predicted.">
             <div className="split">
               <BlurFade delay={0.02} duration={0.32} offset={16}>
                 <div className="card card-pad">
@@ -129,11 +133,9 @@ export default async function EventsPage() {
                     {reasonCounts.map(([reason, count]) => {
                       const share = (count / Math.max(events.length, 1)) * 100;
                       const tone =
-                        reason === "physics_inconsistent" || reason === "isolated_sensor"
+                        ["bias", "drift", "stuck", "spike", "precision", "dropout"].includes(reason)
                           ? "fault"
-                          : reason === "coherent_multi_sensor" ||
-                              reason === "coherent_regional" ||
-                              reason === "sustained_regime"
+                          : ["heat_wave", "cold_snap", "storm", "heavy_rain"].includes(reason)
                             ? "extreme"
                             : undefined;
                       return (
@@ -185,7 +187,7 @@ export default async function EventsPage() {
 
           <Section
             title="Episodes"
-            note="Filter by verdict, or search a station, sensor or reason code."
+            note="Filter by verdict, or search a station, sensor or class."
           >
             <EventTable events={events} />
           </Section>

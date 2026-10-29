@@ -45,7 +45,7 @@ export default async function StationsPage() {
       <PageHead
         size="large"
         title="Station integrity"
-        description="Every site is judged on its trailing week: faults first, then genuine extremes, then elevated anomaly density. Open a station for the hour-by-hour trace."
+        description="Every site is judged on its trailing 30 days: faults first, then genuine extremes, then elevated flag density. Open a station for the hour-by-hour trace."
         aside={
           <>
             <span>{stations.length} stations</span>
@@ -67,7 +67,7 @@ export default async function StationsPage() {
                     <th style={{ textAlign: "right" }}>Extremes</th>
                     <th style={{ textAlign: "right" }}>Anomalous</th>
                     <th style={{ textAlign: "right" }}>Events</th>
-                    <th style={{ textAlign: "right" }}>Fault recall</th>
+                    <th style={{ textAlign: "right" }}>Accuracy</th>
                     <th>Last reading</th>
                     <th aria-label="Open" />
                   </tr>
@@ -103,7 +103,7 @@ export default async function StationsPage() {
                         <td style={{ textAlign: "right" }}>{station.total_events}</td>
                         <td style={{ textAlign: "right" }}>
                           {stationMetrics
-                            ? `${(stationMetrics.fault_detection_rate * 100).toFixed(1)}%`
+                            ? `${(stationMetrics.accuracy * 100).toFixed(1)}%`
                             : "—"}
                         </td>
                         <td className="cell-muted">

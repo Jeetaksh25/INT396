@@ -1,18 +1,44 @@
 export type StationStatus = "HEALTHY" | "WATCH" | "FAULT" | "EXTREME_EVENT";
 
-export interface MetricBlock {
-  fault_detection_rate: number;
-  fault_classification_rate: number;
-  extreme_false_flag_rate: number;
-  precision_at_k: Record<string, number>;
+export interface ScoreBlock {
+  accuracy: number;
+  balanced_accuracy: number;
+  macro_f1: number;
+}
+
+export interface ClassScore {
   precision: number;
   recall: number;
   f1: number;
-  false_positive_rate_clean: number;
+  support: number;
 }
 
 export interface MetricsSummary {
   generated_at: string;
+  task: string;
+  unsupervised: {
+    detectors: string[];
+    fit_sample: number;
+    vote_quantile: number;
+    votes_needed: number;
+    coherence_threshold: number;
+    pca_components: number;
+    kmeans_clusters: number;
+    lof_neighbours: number;
+    isolation_trees: number;
+    vote_rates: Record<string, number>;
+    flag_rate: number;
+    grouped: ScoreBlock;
+    group_confusion: { labels: string[]; matrix: number[][] };
+  };
+  model: {
+    name: string;
+    trees: number;
+    min_samples_leaf: number;
+    max_depth: number;
+    why: string;
+  };
+  evaluation: string;
   random_seed: number;
   dataset: {
     stations: string[];
@@ -21,61 +47,35 @@ export interface MetricsSummary {
     start: string;
     end: string;
     source: string;
+    train_rows_per_fold: number;
+    test_rows_per_fold: number;
   };
-  detector: MetricBlock;
-  baseline_range_check: MetricBlock;
-  delta: {
-    fault_detection_rate: number;
-    extreme_false_flag_rate: number;
-    precision: number;
-    f1: number;
-  };
-  per_fault_type_recall: Record<string, number>;
-  baseline_per_fault_type_recall: Record<string, number>;
-  per_station: Record<
-    string,
-    {
-      fault_detection_rate: number;
-      false_positive_rate_clean: number;
-      fault_readings: number;
-      extreme_readings: number;
-    }
-  >;
   label_counts: {
     total_readings: number;
-    fault_readings: number;
-    extreme_readings: number;
+    normal: number;
+    fault: number;
+    extreme: number;
   };
-  confusion: {
-    fault_flagged: number;
-    fault_total: number;
-    extreme_flagged: number;
-    extreme_total: number;
-    clean_flagged: number;
-    clean_total: number;
-  };
-  event_metrics: {
-    event_count: number;
+  class_counts: Record<string, number>;
+  features: string[];
+  detailed: ScoreBlock;
+  grouped: ScoreBlock;
+  majority_baseline: number;
+  range_check: ScoreBlock;
+  per_class: Record<string, ClassScore>;
+  group_confusion: { labels: string[]; matrix: number[][] };
+  per_station: Record<string, ScoreBlock>;
+  feature_importance: Record<string, number>;
+  events: {
+    count: number;
     fault_events: number;
     extreme_events: number;
-    clean_events: number;
-    fault_event_precision: number;
-    extreme_event_precision: number;
-    reason_code_counts: Record<string, number>;
-  };
-  diagnostics: {
-    vote_thresholds: Record<string, number>;
-    vote_rates_reference: Record<string, number>;
-    pca_components: number;
-    dbscan_noise_percent: number;
-    lof_outlier_percent: number;
-    reference_rows: number;
-    total_rows: number;
+    correct_events: number;
   };
   timing: Record<string, number>;
-  rule_count: number;
-  feature_columns: string[];
 }
+
+export type ModelCard = MetricsSummary;
 
 export interface StationHealth {
   station_id: string;
@@ -180,91 +180,4 @@ export interface EventRecord {
 export interface EventsResponse {
   count: number;
   events: EventRecord[];
-}
-
-export interface ModelSpec {
-  key: string;
-  name: string;
-  unit: string;
-  family: string;
-  score: string;
-  why: string;
-  hyperparameters: Record<string, string | number | boolean>;
-  vote_rate: number;
-  precision: number;
-  recall: number;
-  f1: number;
-  fault_recall: number;
-  score_mean: number;
-  score_p99: number;
-}
-
-export interface ModelCard {
-  generated_at: string;
-  task: string;
-  supervision: {
-    training_labels_used: number;
-    label_source: string;
-    guard: string;
-  };
-  dataset: {
-    stations: string[];
-    sensors: string[];
-    rows: number;
-    start: string;
-    end: string;
-    source: string;
-    reference_rows: number;
-    reference_fraction: number;
-    fault_readings: number;
-    extreme_readings: number;
-    fault_coverage: number;
-    extreme_coverage: number;
-  };
-  consensus: {
-    vote_threshold: number;
-    vote_total: number;
-    reference_quantile: number;
-    agreement_counts: Record<string, number>;
-    agreement_share: Record<string, number>;
-    pca_components: number;
-    vote_thresholds: Record<string, number>;
-    reference_vote_rates: Record<string, number>;
-  };
-  features: {
-    columns: string[];
-    count: number;
-    scaling: string;
-  };
-  models: ModelSpec[];
-  detector: MetricBlock;
-  baseline_range_check: MetricBlock;
-  delta: {
-    fault_detection_rate: number;
-    extreme_false_flag_rate: number;
-    precision: number;
-    f1: number;
-  };
-  per_fault_type_recall: Record<string, number>;
-  baseline_per_fault_type_recall: Record<string, number>;
-  confusion: {
-    fault_flagged: number;
-    fault_total: number;
-    extreme_flagged: number;
-    extreme_total: number;
-    clean_flagged: number;
-    clean_total: number;
-  };
-  event_metrics: MetricsSummary["event_metrics"];
-  timing: Record<string, number>;
-  association_rules: {
-    rule_count: number;
-    min_support: number;
-    min_confidence: number;
-  };
-  runtime: {
-    detector_seconds: number | null;
-    discriminator_seconds: number | null;
-    features_seconds: number | null;
-  };
 }

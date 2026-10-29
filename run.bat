@@ -6,7 +6,7 @@ set API_PORT=8000
 set WEB_PORT=3000
 
 echo ============================================
-echo  INT396 - Sensor Fault Discovery Dashboard
+echo  INT396 - Sensor Fault Classifier Dashboard
 echo ============================================
 echo.
 
@@ -24,24 +24,15 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist "backend\results\metrics_summary.json" (
-    echo [1/4] Results missing. Building the full pipeline, this takes a few minutes...
+if not exist "backend\results\metrics.json" (
+    echo [1/4] Results missing. Generating data and training the model, this takes a few minutes...
     pushd backend
     python -m pip install -r requirements.txt
     if errorlevel 1 goto failed
-    if not exist "data\raw\DEL.csv" (
-        python -m src.acquisition.fetch_open_meteo
-        if errorlevel 1 goto failed
-    )
-    python -m src.acquisition.build_dataset
+    python generate_data.py
     if errorlevel 1 goto failed
-    python -m src.simulation.build_simulation
+    python model.py
     if errorlevel 1 goto failed
-    python -m src.evaluation.run_experiment
-    if errorlevel 1 goto failed
-    python -m src.evaluation.model_card
-    python -m src.evaluation.export_rules
-    python -m src.evaluation.generate_figures
     popd
 ) else (
     echo [1/4] Results found, skipping pipeline.

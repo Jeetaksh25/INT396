@@ -23,3 +23,5 @@ backend/results/tune_*.parquet
 
 backend/results/simulation_bank.pkl
 backend/results/*.pkl
+backend/results/detections.csv
+backend/results/*.joblib

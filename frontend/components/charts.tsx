@@ -7,7 +7,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   LabelList,
   Line,
   LineChart,
@@ -44,18 +43,17 @@ const timelineConfig = {
 
 const sensorConfig = {
   value: { label: "Reading", color: INK },
-  anomaly: { label: "Consensus flag", color: FAULT },
+  anomaly: { label: "Model flag", color: FAULT },
   baseline: { label: "Range-check flag", color: WATCH },
 } satisfies ChartConfig;
 
 const recallConfig = {
-  detector: { label: "Consensus", color: ACCENT },
-  baseline: { label: "Range check", color: HAIRLINE },
+  recall: { label: "Recall", color: ACCENT },
+  precision: { label: "Precision", color: HAIRLINE },
 } satisfies ChartConfig;
 
-const confusionConfig = {
-  flagged: { label: "Flagged", color: ACCENT },
-  clear: { label: "Not flagged", color: "oklch(94% 0.005 265)" },
+const importanceConfig = {
+  value: { label: "Importance", color: ACCENT },
 } satisfies ChartConfig;
 
 const toEpoch = (value: string) => Date.parse(value.replace(" ", "T"));
@@ -78,6 +76,11 @@ const faultNames: Record<string, string> = {
   spike: "Spike",
   precision: "Precision",
   dropout: "Dropout",
+  normal: "Normal",
+  heat_wave: "Heat wave",
+  cold_snap: "Cold snap",
+  storm: "Storm",
+  heavy_rain: "Heavy rain",
 };
 
 const ranges = [7, 30, 90];
@@ -114,7 +117,7 @@ function SensorTooltip({
         <div className="chart-tip-row">
           <span className="chart-tip-label">
             <span className="swatch" style={{ background: FAULT }} />
-            {config.anomaly?.label ?? "Consensus"}
+            {config.anomaly?.label ?? "Model"}
           </span>
           <span className="chart-tip-value">flagged</span>
         </div>
@@ -359,7 +362,7 @@ export function SensorLineChart({
         <div className="chart-legend-inline">
           <span className="legend-item">
             <span className="swatch" style={{ background: FAULT }} />
-            consensus flag
+            model flag
           </span>
           <span className="legend-item">
             <span className="swatch" style={{ background: WATCH }} />
@@ -438,53 +441,54 @@ export function SensorLineChart({
   );
 }
 
-export function RecallBars({
-  detector,
-  baseline,
-}: {
-  detector: Record<string, number>;
-  baseline: Record<string, number>;
-}) {
-  const data = Object.keys(detector)
-    .map((name) => ({
-      name: faultNames[name] ?? name,
-      detector: Number((detector[name] * 100).toFixed(1)),
-      baseline: Number(((baseline[name] ?? 0) * 100).toFixed(1)),
-    }))
-    .sort((a, b) => b.detector - a.detector);
+const tipRow = (suffix: string) =>
+  function TipRow(value: unknown, name: unknown) {
+    return (
+      <span className="chart-tip-row">
+        <span>{String(name)}</span>
+        <span className="chart-tip-value">
+          {Number(value).toFixed(1)}
+          {suffix}
+        </span>
+      </span>
+    );
+  };
 
-  const best = data.reduce((top, entry) => Math.max(top, entry.detector), 0);
+export function ClassBars({
+  perClass,
+}: {
+  perClass: Record<string, { precision: number; recall: number; f1: number; support: number }>;
+}) {
+  const data = Object.entries(perClass).map(([name, row]) => ({
+    name: faultNames[name] ?? name,
+    recall: Number((row.recall * 100).toFixed(1)),
+    precision: Number((row.precision * 100).toFixed(1)),
+  }));
 
   return (
     <div className="chart-shell">
       <div className="chart-head">
         <div className="chart-summary">
           <span className="chart-summary-value">{data.length}</span>
-          <span className="chart-summary-key">fault types · best recall {best.toFixed(0)}%</span>
+          <span className="chart-summary-key">classes the forest predicts</span>
         </div>
         <div className="chart-legend-inline">
           <span className="legend-item">
             <span className="swatch" style={{ background: ACCENT }} />
-            consensus
+            recall
           </span>
           <span className="legend-item">
             <span className="swatch" style={{ background: HAIRLINE }} />
-            range check
+            precision
           </span>
         </div>
       </div>
-
       <ChartContainer
         config={recallConfig}
         className="aspect-auto w-full"
-        style={{ height: `${Math.max(data.length * 42, 180)}px` }}
+        style={{ height: `${Math.max(data.length * 40, 180)}px` }}
       >
-        <BarChart
-          data={data}
-          layout="vertical"
-          margin={{ top: 4, right: 44, bottom: 4, left: 4 }}
-          barGap={2}
-        >
+        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 44, bottom: 4, left: 4 }} barGap={2}>
           <CartesianGrid stroke="var(--hairline)" strokeDasharray="3 3" horizontal={false} />
           <XAxis
             type="number"
@@ -495,169 +499,66 @@ export function RecallBars({
             axisLine={false}
             tickFormatter={(value: number) => `${value}%`}
           />
-          <YAxis
-            type="category"
-            dataKey="name"
-            tick={{ fontSize: 12, fill: INK }}
-            tickLine={false}
-            axisLine={false}
-            width={92}
-          />
+          <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: INK }} tickLine={false} axisLine={false} width={92} />
           <ChartTooltip
             cursor={{ fill: "var(--surface-sunken)" }}
-            content={
-              <ChartTooltipContent
-                indicator="line"
-                formatter={(value, name) => (
-                  <span className="chart-tip-row">
-                    <span>{name}</span>
-                    <span className="chart-tip-value">{Number(value).toFixed(1)}%</span>
-                  </span>
-                )}
-              />
-            }
+            content={<ChartTooltipContent indicator="line" formatter={tipRow("%")} />}
           />
-          <Bar
-            dataKey="detector"
-            fill={ACCENT}
-            radius={[0, 4, 4, 0]}
-            maxBarSize={11}
-            animationDuration={ANIM}
-            animationEasing="ease-out"
-          >
+          <Bar dataKey="recall" fill={ACCENT} radius={[0, 4, 4, 0]} maxBarSize={11} animationDuration={ANIM}>
             <LabelList
-              dataKey="detector"
+              dataKey="recall"
               position="right"
               offset={8}
               formatter={(value) => `${Number(value ?? 0).toFixed(0)}%`}
               style={{ fontSize: 11, fill: DIM, fontVariantNumeric: "tabular-nums" }}
             />
           </Bar>
-          <Bar
-            dataKey="baseline"
-            fill={HAIRLINE}
-            radius={[0, 4, 4, 0]}
-            maxBarSize={11}
-            animationDuration={ANIM}
-          />
+          <Bar dataKey="precision" fill={HAIRLINE} radius={[0, 4, 4, 0]} maxBarSize={11} animationDuration={ANIM} />
         </BarChart>
       </ChartContainer>
     </div>
   );
 }
 
-export function FlagRateBars({
-  confusion,
-}: {
-  confusion: {
-    fault_flagged: number;
-    fault_total: number;
-    extreme_flagged: number;
-    extreme_total: number;
-    clean_flagged: number;
-    clean_total: number;
-  };
-}) {
-  const rows = [
-    {
-      name: "Clean readings",
-      rate: (confusion.clean_flagged / Math.max(confusion.clean_total, 1)) * 100,
-      flagged: confusion.clean_flagged,
-      total: confusion.clean_total,
-      fill: HAIRLINE,
-    },
-    {
-      name: "Extreme readings",
-      rate: (confusion.extreme_flagged / Math.max(confusion.extreme_total, 1)) * 100,
-      flagged: confusion.extreme_flagged,
-      total: confusion.extreme_total,
-      fill: EXTREME,
-    },
-    {
-      name: "Fault readings",
-      rate: (confusion.fault_flagged / Math.max(confusion.fault_total, 1)) * 100,
-      flagged: confusion.fault_flagged,
-      total: confusion.fault_total,
-      fill: FAULT,
-    },
-  ];
-
-  const maxRate = rows.reduce((top, row) => Math.max(top, row.rate), 0);
-  const axisMax = Math.max(5, Math.ceil(maxRate / 5) * 5);
+export function ImportanceBars({ importance }: { importance: Record<string, number> }) {
+  const data = Object.entries(importance).map(([name, value]) => ({
+    name,
+    value: Number((value * 100).toFixed(1)),
+  }));
 
   return (
     <div className="chart-shell">
       <div className="chart-head">
         <div className="chart-summary">
-          <span className="chart-summary-value">{rows[2].rate.toFixed(1)}%</span>
-          <span className="chart-summary-key">
-            of {confusion.fault_total.toLocaleString()} injected fault readings caught
-          </span>
+          <span className="chart-summary-value">{data.length}</span>
+          <span className="chart-summary-key">features · share of split importance</span>
         </div>
       </div>
-
       <ChartContainer
-        config={confusionConfig}
+        config={importanceConfig}
         className="aspect-auto w-full"
-        style={{ height: "152px" }}
+        style={{ height: `${Math.max(data.length * 30, 180)}px` }}
       >
-        <BarChart data={rows} layout="vertical" margin={{ top: 2, right: 56, bottom: 2, left: 4 }}>
+        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 44, bottom: 4, left: 4 }}>
           <CartesianGrid stroke="var(--hairline)" strokeDasharray="3 3" horizontal={false} />
           <XAxis
             type="number"
-            domain={[0, axisMax]}
             tick={axisTick}
             tickLine={false}
             axisLine={false}
             tickFormatter={(value: number) => `${value}%`}
           />
-          <YAxis
-            type="category"
-            dataKey="name"
-            tick={{ fontSize: 12, fill: INK }}
-            tickLine={false}
-            axisLine={false}
-            width={118}
-          />
+          <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: INK }} tickLine={false} axisLine={false} width={104} />
           <ChartTooltip
             cursor={{ fill: "var(--surface-sunken)" }}
-            content={
-              <ChartTooltipContent
-                hideIndicator
-                formatter={(_, __, item) => {
-                  const row = item?.payload as (typeof rows)[number] | undefined;
-                  if (!row) return null;
-                  return (
-                    <span className="chart-tip-row">
-                      <span>{row.name}</span>
-                      <span className="chart-tip-value">
-                        {row.flagged.toLocaleString()} / {row.total.toLocaleString()} ·{" "}
-                        {row.rate.toFixed(2)}%
-                      </span>
-                    </span>
-                  );
-                }}
-              />
-            }
+            content={<ChartTooltipContent indicator="line" formatter={tipRow("%")} />}
           />
-          <Bar
-            dataKey="rate"
-            radius={[0, 5, 5, 0]}
-            maxBarSize={26}
-            animationDuration={ANIM}
-            animationEasing="ease-out"
-          >
-            {rows.map((row) => (
-              <Cell key={row.name} fill={row.fill} />
-            ))}
+          <Bar dataKey="value" fill={ACCENT} radius={[0, 4, 4, 0]} maxBarSize={14} animationDuration={ANIM}>
             <LabelList
-              dataKey="rate"
+              dataKey="value"
               position="right"
               offset={8}
-              formatter={(value) => {
-                const rate = Number(value ?? 0);
-                return rate < 1 ? `${rate.toFixed(2)}%` : `${rate.toFixed(1)}%`;
-              }}
+              formatter={(value) => `${Number(value ?? 0).toFixed(1)}%`}
               style={{ fontSize: 11, fill: DIM, fontVariantNumeric: "tabular-nums" }}
             />
           </Bar>

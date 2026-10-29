@@ -1,98 +1,29 @@
-import Link from "next/link";
-import { ShieldCheck, ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
+import { TreeStructure } from "@phosphor-icons/react/dist/ssr";
 import { getModelCard } from "@/lib/api";
-import { ModelCard, ModelSpec } from "@/lib/types";
-import { PageHead, Section, KvList, Callout, StepList, TickedNumber } from "@/components/page-parts";
+import { ModelCard } from "@/lib/types";
+import { PageHead, Section, KvList, MetricCard } from "@/components/page-parts";
 import { TopBar } from "@/components/top-bar";
-import { RecallBars, FlagRateBars } from "@/components/charts";
+import { ClassBars, ImportanceBars } from "@/components/charts";
 import { BlurFade } from "@/components/ui/blur-fade";
 
 const percent = (value: number, digits = 1) => `${(value * 100).toFixed(digits)}%`;
 
-const formatParam = (value: unknown) => {
-  if (typeof value === "number") {
-    return Number.isInteger(value) ? String(value) : value.toFixed(4);
-  }
-  if (typeof value === "boolean") {
-    return value ? "enabled" : "disabled";
-  }
-  return String(value);
+const groupNames: Record<string, string> = {
+  normal: "Normal",
+  fault: "Fault",
+  extreme: "Extreme",
 };
 
-function ModelTile({ model, index }: { model: ModelSpec; index: number }) {
-  return (
-    <BlurFade delay={index * 0.04} duration={0.32} offset={16}>
-      <article className="model-card">
-        <div className="model-head">
-          <div>
-            <h3 className="model-name">{model.name}</h3>
-            <p className="model-family">
-              {model.family} · {model.unit}
-            </p>
-          </div>
-          <span className="chip" data-tone="accent">
-            {percent(model.vote_rate, 2)} votes
-          </span>
-        </div>
-
-        <div className="model-scores">
-          <div className="model-score">
-            <span className="model-score-key">Precision</span>
-            <span className="model-score-value">{model.precision.toFixed(3)}</span>
-          </div>
-          <div className="model-score">
-            <span className="model-score-key">Recall</span>
-            <span className="model-score-value">{model.recall.toFixed(3)}</span>
-          </div>
-          <div className="model-score">
-            <span className="model-score-key">F1</span>
-            <span className="model-score-value">{model.f1.toFixed(3)}</span>
-          </div>
-        </div>
-
-        <div>
-          <p className="mono-label" style={{ marginBottom: "0.5rem" }}>
-            Hyperparameters
-          </p>
-          <div className="params">
-            {Object.entries(model.hyperparameters).map(([key, value]) => (
-              <div className="param" key={key}>
-                <span className="param-key">{key.replace(/_/g, " ")}</span>
-                <span className="param-value">{formatParam(value)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="mono-label" style={{ marginBottom: "0.35rem" }}>
-            Anomaly score
-          </p>
-          <p style={{ fontSize: "0.8125rem", color: "var(--ink-2)", lineHeight: 1.5 }}>
-            {model.score}
-          </p>
-        </div>
-
-        <p style={{ fontSize: "0.8125rem", color: "var(--ink-3)", lineHeight: 1.55 }}>
-          {model.why}
-        </p>
-
-        <div className="def-list" style={{ marginTop: "auto" }}>
-          <div className="def-row">
-            <span className="def-key">Fault-only recall</span>
-            <span className="def-value">{percent(model.fault_recall)}</span>
-          </div>
-          <div className="def-row">
-            <span className="def-key">Score mean / p99</span>
-            <span className="def-value">
-              {model.score_mean.toFixed(2)} / {model.score_p99.toFixed(2)}
-            </span>
-          </div>
-        </div>
-      </article>
-    </BlurFade>
-  );
-}
+const stationNames: Record<string, string> = {
+  DEL: "Delhi",
+  BOM: "Mumbai",
+  MAA: "Chennai",
+  HYD: "Hyderabad",
+  JAI: "Jaipur",
+  CCU: "Kolkata",
+  BLR: "Bengaluru",
+  SLM: "Shimla",
+};
 
 export default async function ModelPage() {
   let card: ModelCard;
@@ -107,15 +38,14 @@ export default async function ModelPage() {
         <div className="error-panel">
           <h2 className="error-title">Model card unavailable</h2>
           <p className="code-line">{message}</p>
-          <p className="code-line">python -m src.evaluation.model_card</p>
+          <p className="code-line">cd backend &amp;&amp; python generate_data.py &amp;&amp; python model.py</p>
         </div>
       </>
     );
   }
 
-  const dataset = card.dataset;
-  const consensus = card.consensus;
-  const bestModel = [...card.models].sort((a, b) => b.f1 - a.f1)[0];
+  const confusion = card.group_confusion;
+  const rowTotals = confusion.matrix.map((row) => row.reduce((sum, value) => sum + value, 0));
 
   return (
     <>
@@ -123,394 +53,197 @@ export default async function ModelPage() {
       <PageHead
         size="large"
         title="The model, in full"
-        description="Five classical unsupervised detectors, each implemented from the formulas with NumPy, combined by a two-of-five vote and read through a consistency rule tree. No training label is used anywhere in the model path."
+        description={card.task + "."}
         aside={
           <>
             <span className="chip" data-tone="accent">
-              <ShieldCheck size={12} weight="bold" />
-              unsupervised
+              <TreeStructure size={12} weight="bold" />
+              unsupervised + booster
             </span>
-            <span>{card.models.length} detectors · {card.features.count} features</span>
+            <span>
+              {card.unsupervised.detectors.length} detectors · {card.model.trees}-tree booster ·{" "}
+              {card.features.length} features
+            </span>
             <span className="mono-label" style={{ letterSpacing: 0 }}>
-              seed 42 · {card.runtime.detector_seconds ?? 0}s detector
+              seed {card.random_seed} · {card.timing.total_seconds}s to train and evaluate
             </span>
           </>
         }
       />
 
       <div className="metric-grid">
-        <BlurFade delay={0.02} duration={0.32} offset={14}>
-          <div className="metric">
-            <div className="metric-top">
-              <span className="metric-label">Readings scored</span>
-            </div>
-            <div className="metric-value">
-              <TickedNumber value={dataset.rows} />
-            </div>
-            <div className="metric-foot">
-              <span>
-                {dataset.reference_rows.toLocaleString()} in the reference window
-              </span>
-            </div>
-          </div>
-        </BlurFade>
-        <BlurFade delay={0.06} duration={0.32} offset={14}>
-          <div className="metric">
-            <div className="metric-top">
-              <span className="metric-label">Fault detection</span>
-            </div>
-            <div className="metric-value">
-              <TickedNumber
-                value={card.detector.fault_detection_rate * 100}
-                decimals={1}
-                suffix="%"
-              />
-            </div>
-            <div className="metric-foot">
-              <span className="chip" data-tone="up">
-                +{(card.delta.fault_detection_rate * 100).toFixed(1)}pp
-              </span>
-              <span>over the range check</span>
-            </div>
-          </div>
-        </BlurFade>
-        <BlurFade delay={0.1} duration={0.32} offset={14}>
-          <div className="metric">
-            <div className="metric-top">
-              <span className="metric-label">PCA components kept</span>
-            </div>
-            <div className="metric-value">
-              <TickedNumber value={consensus.pca_components} />
-            </div>
-            <div className="metric-foot">
-              <span>at 90% explained variance</span>
-            </div>
-          </div>
-        </BlurFade>
-        <BlurFade delay={0.14} duration={0.32} offset={14}>
-          <div className="metric">
-            <div className="metric-top">
-              <span className="metric-label">Best single detector</span>
-            </div>
-            <div className="metric-value" style={{ fontSize: "1.65rem" }}>
-              {bestModel.name}
-            </div>
-            <div className="metric-foot">
-              <span>F1 {bestModel.f1.toFixed(3)} on its own</span>
-            </div>
-          </div>
-        </BlurFade>
+        <MetricCard
+          label="Unsupervised accuracy"
+          value={card.unsupervised.grouped.accuracy}
+          format="percent"
+          decimals={1}
+          suffix="%"
+          caption={`balanced ${percent(card.unsupervised.grouped.balanced_accuracy)} · F1 ${card.unsupervised.grouped.macro_f1.toFixed(3)}`}
+          delay={0.02}
+        />
+        <MetricCard
+          label="Boosted accuracy"
+          value={card.grouped.accuracy}
+          format="percent"
+          decimals={1}
+          suffix="%"
+          caption="normal, fault or extreme"
+          delay={0.06}
+        />
+        <MetricCard
+          label="Boosted balanced accuracy"
+          value={card.grouped.balanced_accuracy}
+          format="percent"
+          decimals={1}
+          suffix="%"
+          caption={`macro F1 ${card.grouped.macro_f1.toFixed(3)}`}
+          delay={0.1}
+        />
+        <MetricCard
+          label="Boosted eleven-class accuracy"
+          value={card.detailed.accuracy}
+          format="percent"
+          decimals={1}
+          suffix="%"
+          caption={`macro F1 ${card.detailed.macro_f1.toFixed(3)}`}
+          delay={0.14}
+        />
       </div>
 
-      <Section
-        title="Detectors"
-        note="Precision, recall and F1 are measured against the injected ground truth, after thresholding each score at its own reference-period quantile."
-      >
-        <div className="model-grid">
-          {card.models.map((model, index) => (
-            <ModelTile key={model.key} model={model} index={index} />
-          ))}
-        </div>
-      </Section>
-
-      <Section
-        title="Consensus behaviour"
-        note={`A reading is an anomaly when at least ${consensus.vote_threshold} of ${consensus.vote_total} detectors vote. Most readings draw no votes at all, which is what makes a unanimous flag meaningful.`}
-      >
-        <div className="split">
-          <BlurFade delay={0.02} duration={0.32} offset={16}>
-            <div className="card">
-              <div className="card-head">
-                <div>
-                  <h3 className="card-title">Vote distribution</h3>
-                  <p className="card-caption">
-                    share of readings by how many detectors agree
-                  </p>
-                </div>
-                <span className="chip" data-tone="neutral">
-                  threshold {consensus.vote_threshold} of {consensus.vote_total}
-                </span>
-              </div>
-              <div style={{ padding: "0.5rem 1.25rem 1.25rem" }}>
-                {Object.entries(consensus.agreement_share).map(([votes, share]) => {
-                  const flagged = Number(votes) >= consensus.vote_threshold;
-                  const count = consensus.agreement_counts[votes] ?? 0;
-                  const peak = Math.max(...Object.values(consensus.agreement_share));
-                  const width = Math.sqrt(share / peak) * 100;
-                  return (
-                    <div className="meter" key={votes}>
-                      <div className="meter-head">
-                        <span className="meter-name">
-                          {votes} {Number(votes) === 1 ? "vote" : "votes"}
-                          <span
-                            className="chip"
-                            data-tone={flagged ? "accent" : "neutral"}
-                          >
-                            {flagged ? "anomaly" : "normal"}
-                          </span>
-                        </span>
-                        <span className="meter-value">
-                          <span className="meter-count">{count.toLocaleString()}</span>
-                          <span>{share > 0 && share < 0.001 ? "<0.1%" : percent(share, 2)}</span>
-                        </span>
-                      </div>
-                      <div className="meter-track">
-                        <div
-                          className="meter-fill"
-                          data-tone={flagged ? undefined : "baseline"}
-                          style={{ width: `${width}%`, height: "100%" }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </BlurFade>
-
-          <BlurFade delay={0.06} duration={0.32} offset={16}>
-            <div className="card card-pad">
-              <h3 className="card-title" style={{ marginBottom: "0.75rem" }}>
-                Aggregation settings
-              </h3>
-              <KvList
-                rows={[
-                  { key: "Vote rule", value: `≥ ${consensus.vote_threshold} of ${consensus.vote_total}` },
-                  {
-                    key: "Vote quantile",
-                    value: `${(consensus.reference_quantile * 100).toFixed(0)}th percentile`,
-                  },
-                  {
-                    key: "Unanimous readings",
-                    value: percent(consensus.agreement_share["4"] ?? 0, 2),
-                  },
-                  {
-                    key: "Reference vote rate",
-                    value: percent(consensus.reference_vote_rates["pca_vote"] ?? 0, 1),
-                  },
-                ]}
-              />
-              <p
-                style={{
-                  marginTop: "0.9rem",
-                  fontSize: "0.8125rem",
-                  color: "var(--ink-3)",
-                  lineHeight: 1.55,
-                }}
-              >
-                The quantile is deliberately conservative. A threshold at the 95th percentile would
-                flag 5% of healthy data by construction before any real anomaly is seen.
-              </p>
-            </div>
-          </BlurFade>
-        </div>
-      </Section>
-
-      <Section
-        title="Features"
-        note={`${card.features.count} features per reading, standardised per station on the reference period.`}
-      >
-        <div className="split">
+      <div className="cols-2">
+        <Section title="Unsupervised detectors" note="Fitted without labels on a random sample of readings.">
           <BlurFade delay={0.02} duration={0.32} offset={14}>
             <div className="card card-pad">
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-                {card.features.columns.map((column) => (
-                  <span
-                    key={column}
-                    className="chip"
-                    data-tone="neutral"
-                    style={{ fontSize: "0.75rem", padding: "0.25rem 0.55rem" }}
-                  >
-                    {column.replace(/_/g, " ")}
-                  </span>
-                ))}
-              </div>
-              <p
-                style={{
-                  marginTop: "1rem",
-                  fontSize: "0.8125rem",
-                  color: "var(--ink-3)",
-                  lineHeight: 1.55,
-                }}
-              >
-                {card.features.scaling}. Every column is computed from{" "}
-                <em style={{ fontStyle: "normal", fontWeight: 550, color: "var(--ink)" }}>
-                  measured values only
-                </em>{" "}
-                — `clean_value` never enters the model.
-              </p>
-            </div>
-          </BlurFade>
-
-          <BlurFade delay={0.06} duration={0.32} offset={14}>
-            <div className="card card-pad">
-              <h3 className="card-title" style={{ marginBottom: "0.75rem" }}>
-                Dataset
-              </h3>
               <KvList
                 rows={[
-                  { key: "Source", value: "Open-Meteo / ERA5" },
-                  { key: "Window", value: "2023, hourly" },
-                  { key: "Stations", value: String(dataset.stations.length) },
-                  { key: "Sensors", value: String(dataset.sensors.length) },
-                  { key: "Fault coverage", value: percent(dataset.fault_coverage, 2) },
-                  { key: "Extreme coverage", value: percent(dataset.extreme_coverage, 2) },
-                  { key: "Reference fraction", value: percent(dataset.reference_fraction, 0) },
+                  { key: "Isolation Forest", value: `${card.unsupervised.isolation_trees} trees · votes on ${percent(card.unsupervised.vote_rates.isolation)}` },
+                  { key: "Local Outlier Factor", value: `${card.unsupervised.lof_neighbours} neighbours · votes on ${percent(card.unsupervised.vote_rates.lof)}` },
+                  { key: "k-Means distance", value: `${card.unsupervised.kmeans_clusters} clusters · votes on ${percent(card.unsupervised.vote_rates.kmeans)}` },
+                  { key: "PCA reconstruction", value: `${card.unsupervised.pca_components} components · votes on ${percent(card.unsupervised.vote_rates.pca)}` },
+                  { key: "Fit sample", value: card.unsupervised.fit_sample.toLocaleString() },
+                  { key: "Flag rule", value: `${card.unsupervised.votes_needed} of ${card.unsupervised.detectors.length} votes · ${percent(card.unsupervised.flag_rate)} flagged` },
+                  { key: "Fault or extreme", value: `extreme when other sensors move more than ${card.unsupervised.coherence_threshold}σ` },
                 ]}
               />
             </div>
           </BlurFade>
-        </div>
-      </Section>
+        </Section>
 
-      <Section
-        title="Accuracy, split the way the problem demands"
-        note="Faults and extremes are scored separately. Averaging them would hide the entire point."
-      >
-        <div className="cols-2">
-          <BlurFade delay={0.02} duration={0.32} offset={16}>
-            <div className="card">
-              <div className="card-head">
-                <div>
-                  <h3 className="card-title">Recall by fault type</h3>
-                  <p className="card-caption">consensus versus the fixed range check</p>
-                </div>
-              </div>
-              <div style={{ padding: "0.5rem 1rem 1rem" }}>
-                <RecallBars
-                  detector={card.per_fault_type_recall}
-                  baseline={card.baseline_per_fault_type_recall}
-                />
+        <Section title="Unsupervised confusion" note="Rows are the truth, share of each row.">
+          <BlurFade delay={0.02} duration={0.32} offset={14}>
+            <div className="card-flat">
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Truth</th>
+                      {card.unsupervised.group_confusion.labels.map((label) => (
+                        <th key={label} style={{ textAlign: "right" }}>
+                          {groupNames[label].toLowerCase()}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {card.unsupervised.group_confusion.matrix.map((row, i) => {
+                      const total = row.reduce((sum, value) => sum + value, 0);
+                      return (
+                        <tr key={i}>
+                          <td className="cell-strong">{groupNames[card.unsupervised.group_confusion.labels[i]]}</td>
+                          {row.map((value, j) => (
+                            <td key={j} style={{ textAlign: "right", fontWeight: i === j ? 600 : 400 }}>
+                              {percent(value / total)}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           </BlurFade>
+        </Section>
+      </div>
 
-          <BlurFade delay={0.06} duration={0.32} offset={16}>
-            <div className="card">
-              <div className="card-head">
-                <div>
-                  <h3 className="card-title">Flag rate by ground-truth class</h3>
-                  <p className="card-caption">how much of each class the detector calls anomalous</p>
-                </div>
-              </div>
-              <div style={{ padding: "0.5rem 1rem 1rem" }}>
-                <FlagRateBars confusion={card.confusion} />
-              </div>
+      <div className="cols-2">
+        <Section title="Supervised booster" note="Refines the detector verdicts.">
+          <BlurFade delay={0.02} duration={0.32} offset={14}>
+            <div className="card card-pad">
+              <KvList
+                rows={[
+                  { key: "Algorithm", value: card.model.name },
+                  { key: "Trees", value: card.model.trees },
+                  { key: "Max depth", value: card.model.max_depth },
+                  { key: "Min samples per leaf", value: card.model.min_samples_leaf },
+                  { key: "Library", value: "scikit-learn" },
+                  { key: "Why", value: card.model.why },
+                ]}
+              />
             </div>
           </BlurFade>
-        </div>
-      </Section>
+        </Section>
 
-      <Section title="Metric table" note="Every headline number, detector against baseline.">
+        <Section title="Data and evaluation" note="Nothing is scored on a station it trained on.">
+          <BlurFade delay={0.02} duration={0.32} offset={14}>
+            <div className="card card-pad">
+              <KvList
+                rows={[
+                  { key: "Source", value: card.dataset.source },
+                  { key: "Period", value: `${card.dataset.start.slice(0, 10)} to ${card.dataset.end.slice(0, 10)}` },
+                  { key: "Readings", value: card.dataset.rows.toLocaleString() },
+                  {
+                    key: "Train / test per fold",
+                    value: `${card.dataset.train_rows_per_fold.toLocaleString()} / ${card.dataset.test_rows_per_fold.toLocaleString()}`,
+                  },
+                  { key: "Split", value: card.evaluation },
+                  { key: "Always predict normal", value: percent(card.majority_baseline) },
+                ]}
+              />
+            </div>
+          </BlurFade>
+        </Section>
+      </div>
+
+      <Section title="Boosted confusion matrix" note="Rows are the truth, columns the prediction, with the share of each true group.">
         <BlurFade delay={0.02} duration={0.32} offset={14}>
           <div className="card-flat">
             <div className="table-wrap">
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Metric</th>
-                    <th style={{ textAlign: "right" }}>Consensus</th>
-                    <th style={{ textAlign: "right" }}>Range check</th>
-                    <th style={{ textAlign: "right" }}>Delta</th>
+                    <th>Truth</th>
+                    {confusion.labels.map((label) => (
+                      <th key={label} style={{ textAlign: "right" }}>
+                        predicted {groupNames[label].toLowerCase()}
+                      </th>
+                    ))}
+                    <th style={{ textAlign: "right" }}>readings</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    {
-                      name: "Fault detection rate",
-                      detector: card.detector.fault_detection_rate,
-                      baseline: card.baseline_range_check.fault_detection_rate,
-                      higher: true,
-                    },
-                    {
-                      name: "Fault classification rate",
-                      detector: card.detector.fault_classification_rate,
-                      baseline: card.baseline_range_check.fault_classification_rate,
-                      higher: true,
-                    },
-                    {
-                      name: "Extreme false-flag rate",
-                      detector: card.detector.extreme_false_flag_rate,
-                      baseline: card.baseline_range_check.extreme_false_flag_rate,
-                      higher: false,
-                    },
-                    {
-                      name: "Precision (fault class)",
-                      detector: card.detector.precision,
-                      baseline: card.baseline_range_check.precision,
-                      higher: true,
-                    },
-                    {
-                      name: "Recall (fault class)",
-                      detector: card.detector.recall,
-                      baseline: card.baseline_range_check.recall,
-                      higher: true,
-                    },
-                    {
-                      name: "F1 (fault class)",
-                      detector: card.detector.f1,
-                      baseline: card.baseline_range_check.f1,
-                      higher: true,
-                    },
-                    {
-                      name: "False positives on clean",
-                      detector: card.detector.false_positive_rate_clean,
-                      baseline: card.baseline_range_check.false_positive_rate_clean,
-                      higher: false,
-                    },
-                    {
-                      name: "Precision @ 10",
-                      detector: card.detector.precision_at_k["10"],
-                      baseline: card.baseline_range_check.precision_at_k["10"],
-                      higher: true,
-                    },
-                    {
-                      name: "Precision @ 25",
-                      detector: card.detector.precision_at_k["25"],
-                      baseline: card.baseline_range_check.precision_at_k["25"],
-                      higher: true,
-                    },
-                    {
-                      name: "Precision @ 50",
-                      detector: card.detector.precision_at_k["50"],
-                      baseline: card.baseline_range_check.precision_at_k["50"],
-                      higher: true,
-                    },
-                  ].map((row) => {
-                    const diff = row.detector - row.baseline;
-                    const winner =
-                      Math.abs(diff) < 1e-9
-                        ? "tie"
-                        : row.higher
-                          ? diff > 0
-                            ? "detector"
-                            : "baseline"
-                          : diff < 0
-                            ? "detector"
-                            : "baseline";
-                    const detWins = winner === "detector";
-                    return (
-                      <tr key={row.name}>
-                        <td className="cell-strong">{row.name}</td>
+                  {confusion.matrix.map((row, i) => (
+                    <tr key={confusion.labels[i]}>
+                      <td className="cell-strong">{groupNames[confusion.labels[i]]}</td>
+                      {row.map((value, j) => (
                         <td
-                          style={{ textAlign: "right" }}
-                          className={detWins ? "cell-strong" : undefined}
+                          key={j}
+                          style={{
+                            textAlign: "right",
+                            fontVariantNumeric: "tabular-nums",
+                            fontWeight: i === j ? 600 : 400,
+                            color: i === j ? "var(--ink)" : "var(--ink-3)",
+                          }}
                         >
-                          {row.detector.toFixed(4)}
+                          {value.toLocaleString()}
+                          <small style={{ marginLeft: "0.4rem" }}>{percent(value / rowTotals[i])}</small>
                         </td>
-                        <td
-                          style={{ textAlign: "right" }}
-                          className={detWins ? "cell-muted" : "cell-strong"}
-                        >
-                          {row.baseline.toFixed(4)}
-                        </td>
-                        <td style={{ textAlign: "right" }} className="cell-muted">
-                          {diff > 0 ? "+" : ""}
-                          {diff.toFixed(4)}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                      ))}
+                      <td style={{ textAlign: "right" }} className="cell-muted">
+                        {rowTotals[i].toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -518,107 +251,71 @@ export default async function ModelPage() {
         </BlurFade>
       </Section>
 
-      <Section title="Unsupervised by construction" note="Three mechanisms, not a promise.">
+      <div className="cols-2">
+        <Section title="Per-class scores" note="Recall is the share of a class found; precision is the share of predictions that were right.">
+          <BlurFade delay={0.02} duration={0.32} offset={14}>
+            <div className="card card-pad">
+              <ClassBars perClass={card.per_class} />
+            </div>
+          </BlurFade>
+        </Section>
+
+        <Section title="Feature importance" note="Mean decrease in impurity across the forest.">
+          <BlurFade delay={0.02} duration={0.32} offset={14}>
+            <div className="card card-pad">
+              <ImportanceBars importance={card.feature_importance} />
+            </div>
+          </BlurFade>
+        </Section>
+      </div>
+
+      <Section title="Per station" note="Each station scored by the fold that held it out.">
         <BlurFade delay={0.02} duration={0.32} offset={14}>
-          <div className="card card-pad">
-            <Callout icon={<ShieldCheck size={17} weight="regular" />}>
-              <strong style={{ color: "var(--ink)", fontWeight: 550 }}>
-                {card.supervision.training_labels_used} training labels used.
-              </strong>{" "}
-              {card.supervision.label_source}. {card.supervision.guard}.
-            </Callout>
-            <div style={{ marginTop: "1rem" }}>
-              <StepList
-                steps={[
-                  {
-                    title: "Stripped at load",
-                    body: "run_experiment.py drops every label column before feature code runs.",
-                  },
-                  {
-                    title: "Guard raises",
-                    body: "leakage_guard.py raises if a label reaches a feature frame, detector input or detector output.",
-                  },
-                  {
-                    title: "Tests prove it",
-                    body: "test_leakage_guard asserts the guard fires on a labelled frame and passes on a clean one.",
-                  },
-                  {
-                    title: "No model imports a label",
-                    body: "nothing in src/algorithms reads, receives or infers a ground-truth column.",
-                  },
-                ]}
-              />
+          <div className="card-flat">
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Station</th>
+                    <th style={{ textAlign: "right" }}>Accuracy</th>
+                    <th style={{ textAlign: "right" }}>Balanced accuracy</th>
+                    <th style={{ textAlign: "right" }}>Macro F1</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(card.per_station).map(([code, row]) => (
+                    <tr key={code}>
+                      <td>
+                        <span className="station-cell">
+                          <span className="station-id">{code}</span>
+                          <span className="cell-strong">{stationNames[code] ?? code}</span>
+                        </span>
+                      </td>
+                      <td style={{ textAlign: "right" }}>{percent(row.accuracy)}</td>
+                      <td style={{ textAlign: "right" }}>{percent(row.balanced_accuracy)}</td>
+                      <td style={{ textAlign: "right" }}>{row.macro_f1.toFixed(3)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </BlurFade>
       </Section>
 
-      <Section title="Pipeline timing" note="Measured on this machine, full year, all stations.">
-        <div className="cols-3">
-          {[
-            { label: "Feature build", value: card.runtime.features_seconds ?? 0, unit: "s" },
-            { label: "Detectors", value: card.runtime.detector_seconds ?? 0, unit: "s" },
-            { label: "Discriminator", value: card.runtime.discriminator_seconds ?? 0, unit: "s" },
-          ].map((item, index) => (
-            <BlurFade key={item.label} delay={index * 0.05} duration={0.32} offset={12}>
-              <div className="card card-pad">
-                <p className="mono-label">{item.label}</p>
-                <p
-                  style={{
-                    fontSize: "1.75rem",
-                    fontWeight: 500,
-                    letterSpacing: "-0.04em",
-                    marginTop: "0.3rem",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  <TickedNumber value={item.value} decimals={2} suffix={item.unit} />
-                </p>
-              </div>
-            </BlurFade>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Where to look next">
-        <div className="cols-3">
-          {[
-            {
-              href: "/events",
-              title: "Detection events",
-              body: "Episodes with the reason code that decided fault or extreme.",
-            },
-            {
-              href: "/stations",
-              title: "Station health",
-              body: "Per-site status, fault counts and hourly traces.",
-            },
-            {
-              href: "/method",
-              title: "Method notes",
-              body: "Fault and extreme models, the rule tree, and the baseline definition.",
-            },
-          ].map((item, index) => (
-            <BlurFade key={item.href} delay={index * 0.05} duration={0.32} offset={12}>
-              <Link href={item.href} className="card card-pad" style={{ display: "block" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "0.5rem",
-                  }}
-                >
-                  <span className="card-title">{item.title}</span>
-                  <ArrowUpRight size={15} weight="bold" style={{ color: "var(--ink-3)" }} />
-                </div>
-                <p style={{ marginTop: "0.5rem", color: "var(--ink-3)", fontSize: "0.875rem" }}>
-                  {item.body}
-                </p>
-              </Link>
-            </BlurFade>
-          ))}
-        </div>
+      <Section title="Events" note="Consecutive flagged hours on one sensor, merged into one episode.">
+        <BlurFade delay={0.02} duration={0.32} offset={14}>
+          <div className="card card-pad">
+            <KvList
+              rows={[
+                { key: "Episodes found", value: card.events.count.toLocaleString() },
+                { key: "Fault episodes", value: card.events.fault_events.toLocaleString() },
+                { key: "Extreme episodes", value: card.events.extreme_events.toLocaleString() },
+                { key: "Episodes with the right group", value: percent(card.events.correct_events) },
+              ]}
+            />
+          </div>
+        </BlurFade>
       </Section>
     </>
   );

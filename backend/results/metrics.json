@@ -1,0 +1,311 @@
+{
+  "generated_at": "2026-10-29T10:36:23.585334+00:00",
+  "task": "Unsupervised detection of faulty weather-station sensors, separated from genuine weather extremes, with a small supervised booster that refines the verdicts",
+  "unsupervised": {
+    "detectors": [
+      "isolation",
+      "lof",
+      "kmeans",
+      "pca"
+    ],
+    "fit_sample": 20000,
+    "vote_quantile": 0.95,
+    "votes_needed": 2,
+    "coherence_threshold": 0.5,
+    "pca_components": 11,
+    "kmeans_clusters": 8,
+    "lof_neighbours": 20,
+    "isolation_trees": 200,
+    "vote_rates": {
+      "isolation": 0.05,
+      "lof": 0.05,
+      "kmeans": 0.05,
+      "pca": 0.05
+    },
+    "flag_rate": 0.0523,
+    "grouped": {
+      "accuracy": 0.918,
+      "balanced_accuracy": 0.4982,
+      "macro_f1": 0.5283
+    },
+    "group_confusion": {
+      "labels": [
+        "normal",
+        "fault",
+        "extreme"
+      ],
+      "matrix": [
+        [
+          251857,
+          2339,
+          6563
+        ],
+        [
+          6481,
+          4290,
+          189
+        ],
+        [
+          7320,
+          100,
+          1181
+        ]
+      ]
+    }
+  },
+  "model": {
+    "name": "Random Forest booster",
+    "trees": 100,
+    "min_samples_leaf": 2,
+    "max_depth": 20,
+    "why": "Takes the unsupervised detector scores and votes as extra inputs, learns from injected labels which flags are real faults or extremes, and shows which inputs mattered"
+  },
+  "evaluation": "4-fold GroupKFold by station: every reading is predicted by a model that never saw its station",
+  "random_seed": 42,
+  "dataset": {
+    "stations": [
+      "DEL",
+      "BOM",
+      "MAA",
+      "HYD",
+      "JAI",
+      "CCU",
+      "BLR",
+      "SLM"
+    ],
+    "sensors": [
+      "temperature",
+      "humidity",
+      "wind_speed",
+      "pressure"
+    ],
+    "rows": 280320,
+    "start": "2023-01-01 00:00:00",
+    "end": "2023-12-31 23:00:00",
+    "source": "Open-Meteo Historical Weather API (ERA5) with injected fault and extreme labels",
+    "train_rows_per_fold": 210240,
+    "test_rows_per_fold": 70080
+  },
+  "label_counts": {
+    "total_readings": 280320,
+    "normal": 260759,
+    "fault": 10960,
+    "extreme": 8601
+  },
+  "class_counts": {
+    "normal": 260759,
+    "drift": 4761,
+    "heat_wave": 3918,
+    "cold_snap": 2994,
+    "precision": 2148,
+    "bias": 1886,
+    "stuck": 1183,
+    "storm": 933,
+    "heavy_rain": 756,
+    "dropout": 550,
+    "spike": 432
+  },
+  "features": [
+    "value_z",
+    "dev_day",
+    "dev_week",
+    "jump",
+    "noise_6h",
+    "noise_day",
+    "flat_6h",
+    "missing_6h",
+    "others_dev",
+    "others_week",
+    "temp_week",
+    "humid_week",
+    "wind_week",
+    "press_week",
+    "sensor_code",
+    "hour"
+  ],
+  "detailed": {
+    "accuracy": 0.9733,
+    "balanced_accuracy": 0.7252,
+    "macro_f1": 0.7732
+  },
+  "grouped": {
+    "accuracy": 0.9794,
+    "balanced_accuracy": 0.8239,
+    "macro_f1": 0.8756
+  },
+  "majority_baseline": 0.9302,
+  "range_check": {
+    "accuracy": 0.9429,
+    "balanced_accuracy": 0.4416,
+    "macro_f1": 0.4849
+  },
+  "per_class": {
+    "normal": {
+      "precision": 0.9823,
+      "recall": 0.9967,
+      "f1": 0.9895,
+      "support": 260759
+    },
+    "bias": {
+      "precision": 0.6496,
+      "recall": 0.5042,
+      "f1": 0.5678,
+      "support": 1886
+    },
+    "drift": {
+      "precision": 0.7391,
+      "recall": 0.6765,
+      "f1": 0.7064,
+      "support": 4761
+    },
+    "stuck": {
+      "precision": 0.9693,
+      "recall": 0.8555,
+      "f1": 0.9088,
+      "support": 1183
+    },
+    "spike": {
+      "precision": 0.9907,
+      "recall": 0.9884,
+      "f1": 0.9896,
+      "support": 432
+    },
+    "precision": {
+      "precision": 0.8602,
+      "recall": 0.702,
+      "f1": 0.7731,
+      "support": 2148
+    },
+    "dropout": {
+      "precision": 0.9908,
+      "recall": 0.98,
+      "f1": 0.9854,
+      "support": 550
+    },
+    "heat_wave": {
+      "precision": 0.8916,
+      "recall": 0.6087,
+      "f1": 0.7235,
+      "support": 3918
+    },
+    "cold_snap": {
+      "precision": 0.847,
+      "recall": 0.662,
+      "f1": 0.7432,
+      "support": 2994
+    },
+    "storm": {
+      "precision": 0.8404,
+      "recall": 0.8124,
+      "f1": 0.8262,
+      "support": 933
+    },
+    "heavy_rain": {
+      "precision": 0.6261,
+      "recall": 0.1905,
+      "f1": 0.2921,
+      "support": 756
+    }
+  },
+  "group_confusion": {
+    "labels": [
+      "normal",
+      "fault",
+      "extreme"
+    ],
+    "matrix": [
+      [
+        259907,
+        410,
+        442
+      ],
+      [
+        1670,
+        9117,
+        173
+      ],
+      [
+        3002,
+        67,
+        5532
+      ]
+    ]
+  },
+  "per_station": {
+    "DEL": {
+      "accuracy": 0.9773,
+      "balanced_accuracy": 0.7799,
+      "macro_f1": 0.8543
+    },
+    "BOM": {
+      "accuracy": 0.9846,
+      "balanced_accuracy": 0.8652,
+      "macro_f1": 0.9027
+    },
+    "MAA": {
+      "accuracy": 0.9799,
+      "balanced_accuracy": 0.8698,
+      "macro_f1": 0.8873
+    },
+    "HYD": {
+      "accuracy": 0.982,
+      "balanced_accuracy": 0.796,
+      "macro_f1": 0.8647
+    },
+    "JAI": {
+      "accuracy": 0.9742,
+      "balanced_accuracy": 0.7868,
+      "macro_f1": 0.8368
+    },
+    "CCU": {
+      "accuracy": 0.9811,
+      "balanced_accuracy": 0.8631,
+      "macro_f1": 0.9053
+    },
+    "BLR": {
+      "accuracy": 0.9788,
+      "balanced_accuracy": 0.8255,
+      "macro_f1": 0.8731
+    },
+    "SLM": {
+      "accuracy": 0.9776,
+      "balanced_accuracy": 0.8018,
+      "macro_f1": 0.8639
+    }
+  },
+  "feature_importance": {
+    "dev_week": 0.1651,
+    "temp_week": 0.1091,
+    "value_z": 0.1045,
+    "noise_day": 0.0739,
+    "kmeans": 0.0626,
+    "wind_week": 0.0554,
+    "isolation": 0.055,
+    "noise_6h": 0.0534,
+    "press_week": 0.0467,
+    "others_week": 0.0421,
+    "flat_6h": 0.0395,
+    "sensor_code": 0.0374,
+    "humid_week": 0.036,
+    "pca": 0.0268,
+    "lof": 0.0219,
+    "dev_day": 0.0195,
+    "votes": 0.013,
+    "missing_6h": 0.0124,
+    "jump": 0.0114,
+    "others_dev": 0.0092,
+    "hour": 0.005
+  },
+  "events": {
+    "count": 879,
+    "fault_events": 594,
+    "extreme_events": 285,
+    "correct_events": 0.8032
+  },
+  "timing": {
+    "features_seconds": 1.0,
+    "unsupervised_seconds": 95.4,
+    "cross_validation_seconds": 115.8,
+    "total_seconds": 220.4
+  }
+}

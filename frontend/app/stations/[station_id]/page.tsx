@@ -31,7 +31,7 @@ export default async function StationPage({
 
   try {
     [detail, series] = await Promise.all([
-      getStationDetail(station_id, 168),
+      getStationDetail(station_id, 720),
       getStationSeries(station_id, 30),
     ]);
   } catch {
@@ -57,7 +57,7 @@ export default async function StationPage({
           </BlurFade>
           <BlurFade delay={0.08} duration={0.3} offset={12}>
             <p className="page-sub">
-              Last {series.days} days of readings with flagged hours, plus the trailing-week summary
+              Last {series.days} days of readings with flagged hours, plus the trailing 30-day summary
               that drives the network status.
             </p>
           </BlurFade>
@@ -210,7 +210,7 @@ export default async function StationPage({
           <div>
             <h2 className="section-title">Recent detections</h2>
             <p className="section-note" style={{ marginTop: "0.2rem" }}>
-              top 25 by anomaly score
+              top 25 by model confidence
             </p>
           </div>
           <Link href="/model" className="btn">
