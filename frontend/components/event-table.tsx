@@ -107,7 +107,7 @@ export function EventTable({ events }: { events: EventRecord[] }) {
                   <th style={{ textAlign: "right" }}>Hours</th>
                   <th>Verdict</th>
                   <th>Reason</th>
-                  <th style={{ textAlign: "right" }}>Neighbour</th>
+                  <th style={{ textAlign: "right" }}>Other sensors</th>
                   <th style={{ textAlign: "right" }}>Score</th>
                 </tr>
               </thead>

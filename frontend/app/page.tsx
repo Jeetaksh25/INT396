@@ -40,9 +40,8 @@ function HeroBand({
         </BlurFade>
         <BlurFade delay={0.08} duration={0.32} offset={14}>
           <p className="page-sub" style={{ maxWidth: "48ch" }}>
-            Eight Indian weather stations, one year of hourly ERA5 readings, five unsupervised
-            detectors in consensus — and a rule tree that separates a broken sensor from a real heat
-            wave.
+            Eight Indian weather stations, one year of hourly ERA5 readings and one supervised Random
+            Forest that tells a broken sensor apart from a real heat wave.
           </p>
         </BlurFade>
       </div>
@@ -67,9 +66,9 @@ function HeroBand({
         </div>
         <div className="hero-stat">
           <span className="hero-stat-value">
-            <TickedNumber value={metrics.detector.precision_at_k["50"] * 100} decimals={0} suffix="%" />
+            <TickedNumber value={metrics.grouped.accuracy * 100} decimals={1} suffix="%" />
           </span>
-          <span className="hero-stat-key">precision @ 50</span>
+          <span className="hero-stat-key">accuracy on unseen stations</span>
         </div>
       </div>
     </div>
@@ -120,39 +119,39 @@ export default async function HomePage() {
 
       <div className="metric-grid" style={{ marginTop: "1.75rem" }}>
         <MetricCard
-          label="Fault detection rate"
-          value={metrics.detector.fault_detection_rate}
+          label="Accuracy"
+          value={metrics.grouped.accuracy}
           format="percent"
           decimals={1}
           suffix="%"
-          delta={metrics.delta.fault_detection_rate}
-          caption={`baseline ${percent(metrics.baseline_range_check.fault_detection_rate)}`}
+          delta={metrics.grouped.accuracy - metrics.range_check.accuracy}
+          caption={`range check ${percent(metrics.range_check.accuracy)}`}
           delay={0.02}
         />
         <MetricCard
-          label="Extreme false-flag rate"
-          value={metrics.detector.extreme_false_flag_rate}
+          label="Balanced accuracy"
+          value={metrics.grouped.balanced_accuracy}
           format="percent"
-          decimals={2}
+          decimals={1}
           suffix="%"
-          caption={`baseline ${percent(metrics.baseline_range_check.extreme_false_flag_rate, 2)}`}
+          caption="mean recall of normal, fault, extreme"
           delay={0.06}
         />
         <MetricCard
-          label="F1 on fault class"
-          value={metrics.detector.f1}
+          label="Macro F1"
+          value={metrics.grouped.macro_f1}
           decimals={3}
-          delta={metrics.delta.f1}
-          caption={`precision ${metrics.detector.precision.toFixed(2)}`}
+          delta={metrics.grouped.macro_f1 - metrics.range_check.macro_f1}
+          caption={`range check ${metrics.range_check.macro_f1.toFixed(3)}`}
           delay={0.1}
         />
         <MetricCard
-          label="Clean-data alarms"
-          value={metrics.detector.false_positive_rate_clean}
+          label="Fine-grained accuracy"
+          value={metrics.detailed.accuracy}
           format="percent"
-          decimals={2}
+          decimals={1}
           suffix="%"
-          caption="of healthy readings"
+          caption="all eleven classes"
           delay={0.14}
         />
       </div>
@@ -170,7 +169,7 @@ export default async function HomePage() {
 
       <Section
         title="Station health"
-        note="Trailing 168 hours: faults first, then genuine extremes, then anomaly density."
+        note="Trailing 30 days: faults first, then genuine extremes, then flag density."
         action={
           <Link href="/stations" className="btn">
             All stations
@@ -245,12 +244,12 @@ export default async function HomePage() {
             {
               href: "/events",
               title: "Events",
-              body: "Grouped anomaly episodes with the reason code that decided the verdict.",
+              body: "Consecutive flagged hours grouped into episodes, with the class the forest predicted.",
             },
             {
               href: "/model",
               title: "Model card",
-              body: "Every detector, its hyperparameters, its per-model score and the leakage guard.",
+              body: "The Random Forest, its features, per-class scores and the confusion matrix.",
             },
           ].map((item, index) => (
             <BlurFade key={item.href} delay={index * 0.05} duration={0.32} offset={14}>
@@ -286,18 +285,19 @@ export default async function HomePage() {
                   style={{ display: "inline", marginRight: "0.4rem", color: "var(--watch)" }}
                   aria-hidden="true"
                 />
-                Faults and extremes are injected. Real failure logs are not public, so magnitudes are
-                authored and these numbers are optimistic relative to a live deployment.
+                Faults and extremes are injected into real ERA5 readings, so every label is known.
+                Real failure logs are not public, which makes these numbers optimistic for a live
+                network.
               </p>
               <p>
-                The detector flags roughly two readings per true fault (precision{" "}
-                {metrics.detector.precision.toFixed(2)}). That is a deliberate trade for a monitoring
-                alarm, not an accident.
+                Most readings are normal, so always predicting &quot;normal&quot; already scores{" "}
+                {percent(metrics.majority_baseline)}. Balanced accuracy (
+                {percent(metrics.grouped.balanced_accuracy)}) and macro F1 show the real gain.
               </p>
               <p>
-                Ground truth was never seen by the model.{" "}
+                Every score comes from stations the model never trained on.{" "}
                 <Link href="/model" className="row-link">
-                  See the leakage guard
+                  See the evaluation
                 </Link>
                 .
               </p>

@@ -8,14 +8,12 @@ import {
   Pulse,
   ChartLineUp,
   TreeStructure,
-  PlayCircle,
 } from "@phosphor-icons/react";
 
 const overviewLinks = [
   { href: "/", label: "Overview", icon: SquaresFour },
   { href: "/stations", label: "Stations", icon: Broadcast },
   { href: "/events", label: "Events", icon: Pulse },
-  { href: "/simulation", label: "Simulation", icon: PlayCircle },
 ];
 
 const analysisLinks = [
@@ -37,7 +35,7 @@ export function RailNav() {
         </span>
         <span className="brand-text">
           <span className="brand-name">Station Integrity</span>
-          <span className="brand-sub">INT-396 · Unsupervised</span>
+          <span className="brand-sub">INT-396 · Supervised</span>
         </span>
       </Link>
 

@@ -34,7 +34,7 @@ export function EventTicker() {
     <section className="section">
       <div className="section-head">
         <h2 className="section-title">Latest verdicts</h2>
-        <span className="section-note">from the rule tree</span>
+        <span className="section-note">from the model</span>
       </div>
       <div className="panel-flush scroll-x">
         <table className="table">
