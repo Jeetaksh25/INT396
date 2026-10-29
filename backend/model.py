@@ -5,10 +5,14 @@ from datetime import datetime, timezone
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+from sklearn.ensemble import IsolationForest
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, confusion_matrix, f1_score, precision_recall_fscore_support
-from sklearn.model_selection import GroupKFold, cross_val_predict
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.preprocessing import StandardScaler
 
+from booster import TREES, boost
 from generate_data import DATASET, EXTREMES, FAULTS, ROOT, SENSORS, STATIONS, label_group
 
 RESULTS = ROOT / "results"
@@ -16,9 +20,14 @@ FEATURES = [
     "value_z", "dev_day", "dev_week", "jump", "noise_6h", "noise_day", "flat_6h", "missing_6h",
     "others_dev", "others_week", "temp_week", "humid_week", "wind_week", "press_week", "sensor_code", "hour",
 ]
+UNSUPERVISED_FEATURES = FEATURES[:-2]
 LIMITS = {"temperature": (-5, 45), "humidity": (0, 100), "wind_speed": (0, 120), "pressure": (950, 1050)}
 CLASSES = ["normal"] + list(FAULTS) + list(EXTREMES)
-TREES = 100
+DETECTORS = ["isolation", "lof", "kmeans", "pca"]
+SAMPLE = 20000
+VOTE_QUANTILE = 0.95
+VOTES_NEEDED = 2
+COHERENCE = 0.5
 
 
 def series_features(values):
@@ -64,8 +73,35 @@ def range_check(data):
     return (value.isna() | (value < low) | (value > high)).astype(int)
 
 
-def make_model():
-    return RandomForestClassifier(n_estimators=TREES, min_samples_leaf=2, max_depth=20, n_jobs=-1, random_state=42)
+def detector_scores(X):
+    scaled = StandardScaler().fit_transform(X)
+    rng = np.random.default_rng(42)
+    sample = scaled[rng.choice(len(scaled), SAMPLE, replace=False)]
+    iso = IsolationForest(n_estimators=200, random_state=42, n_jobs=-1).fit(sample)
+    lof = LocalOutlierFactor(n_neighbors=20, novelty=True, n_jobs=-1).fit(sample)
+    kmeans = KMeans(n_clusters=8, n_init=5, random_state=42).fit(sample)
+    pca = PCA(n_components=0.9, random_state=42).fit(sample)
+    rebuilt = pca.inverse_transform(pca.transform(scaled))
+    found = {
+        "isolation": -iso.score_samples(scaled),
+        "lof": -lof.score_samples(scaled),
+        "kmeans": kmeans.transform(scaled).min(axis=1),
+        "pca": ((scaled - rebuilt) ** 2).sum(axis=1),
+    }
+    info = {"pca_components": int(pca.n_components_), "kmeans_clusters": 8, "lof_neighbours": 20, "isolation_trees": 200}
+    return pd.DataFrame(found), info
+
+
+def unsupervised(data):
+    found, info = detector_scores(data[UNSUPERVISED_FEATURES])
+    for name in DETECTORS:
+        data[name] = found[name].to_numpy()
+        data[name + "_vote"] = (data[name] > data[name].quantile(VOTE_QUANTILE)).astype(int)
+    data["votes"] = data[[name + "_vote" for name in DETECTORS]].sum(axis=1)
+    data["unsupervised_score"] = data[DETECTORS].rank(pct=True).mean(axis=1)
+    flagged = data["votes"] >= VOTES_NEEDED
+    data["unsupervised_group"] = np.where(~flagged, "normal", np.where(data["others_week"] > COHERENCE, "extreme", "fault"))
+    return info
 
 
 def scores(true, pred):
@@ -135,32 +171,33 @@ def train():
     started = time.time()
     data = pd.read_csv(DATASET, parse_dates=["timestamp"])
     data = build_features(data)
-    X, y, stations = data[FEATURES], data["label"], data["station_id"]
     feature_seconds = time.time() - started
 
-    folds = GroupKFold(n_splits=4)
-    proba = cross_val_predict(make_model(), X, y, groups=stations, cv=folds, method="predict_proba", n_jobs=1)
-    order = sorted(y.unique())
-    data["predicted_label"] = np.array(order)[proba.argmax(axis=1)]
-    data["anomaly_score"] = 1 - proba[:, order.index("normal")]
-    data["predicted_group"] = data["predicted_label"].map(label_group)
+    detector_info = unsupervised(data)
     data["baseline_flag"] = range_check(data)
-    cv_seconds = time.time() - started - feature_seconds
+    unsupervised_seconds = time.time() - started - feature_seconds
+    groups = ["normal", "fault", "extreme"]
+    first = scores(data["group"], data["unsupervised_group"])
+    first_matrix = confusion_matrix(data["group"], data["unsupervised_group"], labels=groups)
+    print("unsupervised", first)
 
-    model = make_model().fit(X, y)
     RESULTS.mkdir(exist_ok=True)
-    joblib.dump(model, RESULTS / "model.joblib")
+    inputs = FEATURES + DETECTORS + ["votes"]
+    y = data["label"]
+    data["predicted_label"], data["anomaly_score"], model = boost(data[inputs], y, data["station_id"], RESULTS / "model.joblib")
+    data["predicted_group"] = data["predicted_label"].map(label_group)
+    order = sorted(y.unique())
+    cv_seconds = time.time() - started - feature_seconds - unsupervised_seconds
 
     labels = [c for c in CLASSES if c in order]
     precision, recall, f1, support = precision_recall_fscore_support(y, data["predicted_label"], labels=labels, zero_division=0)
-    groups = ["normal", "fault", "extreme"]
     group_matrix = confusion_matrix(data["group"], data["predicted_group"], labels=groups)
     baseline_group = np.where(data["baseline_flag"] == 1, "fault", "normal")
     per_station = {}
     for code in STATIONS:
         part = data[data["station_id"] == code]
         per_station[code] = scores(part["group"], part["predicted_group"])
-    importance = sorted(zip(FEATURES, model.feature_importances_), key=lambda pair: -pair[1])
+    importance = sorted(zip(inputs, model.feature_importances_), key=lambda pair: -pair[1])
 
     events = make_events(data)
     flagged = data["predicted_group"] != "normal"
@@ -170,8 +207,9 @@ def train():
     data["event_label"] = data["predicted_group"].str.upper().where(flagged)
     data["reason_code"] = data["predicted_label"].where(flagged)
     data["anomaly_score"] = data["anomaly_score"].round(4)
+    data["unsupervised_score"] = data["unsupervised_score"].round(4)
     keep = ["station_id", "sensor_name", "timestamp", "measured_value", "clean_value", "label", "predicted_label",
-            "anomaly_score", "is_anomaly", "event_label", "reason_code", "is_fault_flagged", "is_extreme_flagged", "baseline_flag"]
+            "unsupervised_group", "unsupervised_score", "votes", "anomaly_score", "is_anomaly", "event_label", "reason_code", "is_fault_flagged", "is_extreme_flagged", "baseline_flag"]
     data[keep].to_csv(RESULTS / "detections.csv", index=False)
     events.to_csv(RESULTS / "detection_events.csv", index=False)
     with open(RESULTS / "station_health.json", "w") as f:
@@ -179,13 +217,25 @@ def train():
 
     metrics = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "task": "Supervised classification of every hourly sensor reading as normal, one of six sensor faults, or one of four genuine weather extremes",
+        "task": "Unsupervised detection of faulty weather-station sensors, separated from genuine weather extremes, with a small supervised booster that refines the verdicts",
+        "unsupervised": {
+            "detectors": DETECTORS,
+            "fit_sample": SAMPLE,
+            "vote_quantile": VOTE_QUANTILE,
+            "votes_needed": VOTES_NEEDED,
+            "coherence_threshold": COHERENCE,
+            **detector_info,
+            "vote_rates": {name: round(float(data[name + "_vote"].mean()), 4) for name in DETECTORS},
+            "flag_rate": round(float((data["votes"] >= VOTES_NEEDED).mean()), 4),
+            "grouped": first,
+            "group_confusion": {"labels": groups, "matrix": first_matrix.tolist()},
+        },
         "model": {
-            "name": "Random Forest",
+            "name": "Random Forest booster",
             "trees": TREES,
             "min_samples_leaf": 2,
             "max_depth": 20,
-            "why": "Handles mixed feature scales without scaling, captures thresholds like flat-line counts, and gives feature importances to explain decisions",
+            "why": "Takes the unsupervised detector scores and votes as extra inputs, learns from injected labels which flags are real faults or extremes, and shows which inputs mattered",
         },
         "evaluation": "4-fold GroupKFold by station: every reading is predicted by a model that never saw its station",
         "random_seed": 42,
@@ -221,21 +271,15 @@ def train():
         },
         "timing": {
             "features_seconds": round(feature_seconds, 1),
+            "unsupervised_seconds": round(unsupervised_seconds, 1),
             "cross_validation_seconds": round(cv_seconds, 1),
             "total_seconds": round(time.time() - started, 1),
         },
     }
     with open(RESULTS / "metrics.json", "w") as f:
         json.dump(metrics, f, indent=2)
-    print("accuracy", metrics["detailed"], "grouped", metrics["grouped"], "baseline", metrics["majority_baseline"])
+    print("boosted", metrics["grouped"], "eleven classes", metrics["detailed"], "baseline", metrics["majority_baseline"])
     return metrics
-
-
-def predict(rows):
-    model = joblib.load(RESULTS / "model.joblib")
-    data = build_features(pd.DataFrame(rows).assign(timestamp=lambda d: pd.to_datetime(d["timestamp"])))
-    data["predicted_label"] = model.predict(data[FEATURES])
-    return data[["station_id", "sensor_name", "timestamp", "measured_value", "predicted_label"]]
 
 
 if __name__ == "__main__":

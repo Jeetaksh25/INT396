@@ -55,7 +55,7 @@ cool hill station (SLM), so the model is tested on climates it did not train on.
 ERA5 is a quality-controlled reanalysis: it does not contain failing instruments, and public weather
 networks do not publish labelled failure logs. The standard workaround, used here, is to inject
 realistic faults and extremes into real weather. The weather stays real; only the episodes are
-authored, and the labels they produce are what the supervised model learns from.
+authored. The labels are used to score the unsupervised detectors and to train the small supervised booster.
 
 ## Reproducing
 

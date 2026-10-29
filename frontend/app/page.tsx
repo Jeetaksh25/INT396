@@ -40,8 +40,9 @@ function HeroBand({
         </BlurFade>
         <BlurFade delay={0.08} duration={0.32} offset={14}>
           <p className="page-sub" style={{ maxWidth: "48ch" }}>
-            Eight Indian weather stations, one year of hourly ERA5 readings and one supervised Random
-            Forest that tells a broken sensor apart from a real heat wave.
+            Eight Indian weather stations, one year of hourly ERA5 readings, four unsupervised
+            detectors in a vote, and a small supervised booster that tells a broken sensor apart
+            from a real heat wave.
           </p>
         </BlurFade>
       </div>
@@ -68,7 +69,7 @@ function HeroBand({
           <span className="hero-stat-value">
             <TickedNumber value={metrics.grouped.accuracy * 100} decimals={1} suffix="%" />
           </span>
-          <span className="hero-stat-key">accuracy on unseen stations</span>
+          <span className="hero-stat-key">boosted accuracy, unseen stations</span>
         </div>
       </div>
     </div>
@@ -119,40 +120,40 @@ export default async function HomePage() {
 
       <div className="metric-grid" style={{ marginTop: "1.75rem" }}>
         <MetricCard
-          label="Accuracy"
+          label="Unsupervised accuracy"
+          value={metrics.unsupervised.grouped.accuracy}
+          format="percent"
+          decimals={1}
+          suffix="%"
+          caption={`detectors alone · macro F1 ${metrics.unsupervised.grouped.macro_f1.toFixed(3)}`}
+          delay={0.02}
+        />
+        <MetricCard
+          label="Boosted accuracy"
           value={metrics.grouped.accuracy}
           format="percent"
           decimals={1}
           suffix="%"
-          delta={metrics.grouped.accuracy - metrics.range_check.accuracy}
-          caption={`range check ${percent(metrics.range_check.accuracy)}`}
-          delay={0.02}
+          delta={metrics.grouped.accuracy - metrics.unsupervised.grouped.accuracy}
+          caption="with the supervised booster"
+          delay={0.04}
         />
         <MetricCard
-          label="Balanced accuracy"
+          label="Boosted balanced accuracy"
           value={metrics.grouped.balanced_accuracy}
           format="percent"
           decimals={1}
           suffix="%"
-          caption="mean recall of normal, fault, extreme"
+          caption={`unsupervised ${percent(metrics.unsupervised.grouped.balanced_accuracy)}`}
           delay={0.06}
         />
         <MetricCard
-          label="Macro F1"
+          label="Boosted macro F1"
           value={metrics.grouped.macro_f1}
           decimals={3}
-          delta={metrics.grouped.macro_f1 - metrics.range_check.macro_f1}
+          delta={metrics.grouped.macro_f1 - metrics.unsupervised.grouped.macro_f1}
           caption={`range check ${metrics.range_check.macro_f1.toFixed(3)}`}
           delay={0.1}
-        />
-        <MetricCard
-          label="Fine-grained accuracy"
-          value={metrics.detailed.accuracy}
-          format="percent"
-          decimals={1}
-          suffix="%"
-          caption="all eleven classes"
-          delay={0.14}
         />
       </div>
 
@@ -249,7 +250,7 @@ export default async function HomePage() {
             {
               href: "/model",
               title: "Model card",
-              body: "The Random Forest, its features, per-class scores and the confusion matrix.",
+              body: "The four detectors, the booster, per-class scores and both confusion matrices.",
             },
           ].map((item, index) => (
             <BlurFade key={item.href} delay={index * 0.05} duration={0.32} offset={14}>

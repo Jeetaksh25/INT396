@@ -58,10 +58,11 @@ export default async function ModelPage() {
           <>
             <span className="chip" data-tone="accent">
               <TreeStructure size={12} weight="bold" />
-              supervised
+              unsupervised + booster
             </span>
             <span>
-              {card.model.name} · {card.model.trees} trees · {card.features.length} features
+              {card.unsupervised.detectors.length} detectors · {card.model.trees}-tree booster ·{" "}
+              {card.features.length} features
             </span>
             <span className="mono-label" style={{ letterSpacing: 0 }}>
               seed {card.random_seed} · {card.timing.total_seconds}s to train and evaluate
@@ -72,32 +73,34 @@ export default async function ModelPage() {
 
       <div className="metric-grid">
         <MetricCard
-          label="Accuracy"
+          label="Unsupervised accuracy"
+          value={card.unsupervised.grouped.accuracy}
+          format="percent"
+          decimals={1}
+          suffix="%"
+          caption={`balanced ${percent(card.unsupervised.grouped.balanced_accuracy)} · F1 ${card.unsupervised.grouped.macro_f1.toFixed(3)}`}
+          delay={0.02}
+        />
+        <MetricCard
+          label="Boosted accuracy"
           value={card.grouped.accuracy}
           format="percent"
           decimals={1}
           suffix="%"
           caption="normal, fault or extreme"
-          delay={0.02}
+          delay={0.06}
         />
         <MetricCard
-          label="Balanced accuracy"
+          label="Boosted balanced accuracy"
           value={card.grouped.balanced_accuracy}
           format="percent"
           decimals={1}
           suffix="%"
-          caption="mean recall of the three groups"
-          delay={0.06}
-        />
-        <MetricCard
-          label="Macro F1"
-          value={card.grouped.macro_f1}
-          decimals={3}
-          caption={`range check ${card.range_check.macro_f1.toFixed(3)}`}
+          caption={`macro F1 ${card.grouped.macro_f1.toFixed(3)}`}
           delay={0.1}
         />
         <MetricCard
-          label="Eleven-class accuracy"
+          label="Boosted eleven-class accuracy"
           value={card.detailed.accuracy}
           format="percent"
           decimals={1}
@@ -108,7 +111,63 @@ export default async function ModelPage() {
       </div>
 
       <div className="cols-2">
-        <Section title="Model" note="One estimator, kept simple on purpose.">
+        <Section title="Unsupervised detectors" note="Fitted without labels on a random sample of readings.">
+          <BlurFade delay={0.02} duration={0.32} offset={14}>
+            <div className="card card-pad">
+              <KvList
+                rows={[
+                  { key: "Isolation Forest", value: `${card.unsupervised.isolation_trees} trees · votes on ${percent(card.unsupervised.vote_rates.isolation)}` },
+                  { key: "Local Outlier Factor", value: `${card.unsupervised.lof_neighbours} neighbours · votes on ${percent(card.unsupervised.vote_rates.lof)}` },
+                  { key: "k-Means distance", value: `${card.unsupervised.kmeans_clusters} clusters · votes on ${percent(card.unsupervised.vote_rates.kmeans)}` },
+                  { key: "PCA reconstruction", value: `${card.unsupervised.pca_components} components · votes on ${percent(card.unsupervised.vote_rates.pca)}` },
+                  { key: "Fit sample", value: card.unsupervised.fit_sample.toLocaleString() },
+                  { key: "Flag rule", value: `${card.unsupervised.votes_needed} of ${card.unsupervised.detectors.length} votes · ${percent(card.unsupervised.flag_rate)} flagged` },
+                  { key: "Fault or extreme", value: `extreme when other sensors move more than ${card.unsupervised.coherence_threshold}σ` },
+                ]}
+              />
+            </div>
+          </BlurFade>
+        </Section>
+
+        <Section title="Unsupervised confusion" note="Rows are the truth, share of each row.">
+          <BlurFade delay={0.02} duration={0.32} offset={14}>
+            <div className="card-flat">
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Truth</th>
+                      {card.unsupervised.group_confusion.labels.map((label) => (
+                        <th key={label} style={{ textAlign: "right" }}>
+                          {groupNames[label].toLowerCase()}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {card.unsupervised.group_confusion.matrix.map((row, i) => {
+                      const total = row.reduce((sum, value) => sum + value, 0);
+                      return (
+                        <tr key={i}>
+                          <td className="cell-strong">{groupNames[card.unsupervised.group_confusion.labels[i]]}</td>
+                          {row.map((value, j) => (
+                            <td key={j} style={{ textAlign: "right", fontWeight: i === j ? 600 : 400 }}>
+                              {percent(value / total)}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </BlurFade>
+        </Section>
+      </div>
+
+      <div className="cols-2">
+        <Section title="Supervised booster" note="Refines the detector verdicts.">
           <BlurFade delay={0.02} duration={0.32} offset={14}>
             <div className="card card-pad">
               <KvList
@@ -146,7 +205,7 @@ export default async function ModelPage() {
         </Section>
       </div>
 
-      <Section title="Confusion matrix" note="Rows are the truth, columns the prediction, with the share of each true group.">
+      <Section title="Boosted confusion matrix" note="Rows are the truth, columns the prediction, with the share of each true group.">
         <BlurFade delay={0.02} duration={0.32} offset={14}>
           <div className="card-flat">
             <div className="table-wrap">

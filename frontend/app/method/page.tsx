@@ -58,7 +58,7 @@ export default async function MethodPage() {
       <PageHead
         size="large"
         title="How a reading is judged"
-        description="Labelled faults and extremes are injected into real weather data, sixteen features describe every reading, and a Random Forest learns which pattern is which. A fixed range check runs beside it as the baseline."
+        description="Faults and extremes are injected into real weather data, four unsupervised detectors vote on every reading, and a small supervised booster refines their verdicts. A fixed range check runs beside it as the baseline."
         aside={
           <>
             <span>{counts.total_readings.toLocaleString()} readings</span>
@@ -67,7 +67,7 @@ export default async function MethodPage() {
         }
       />
 
-      <Section title="The pipeline, in order" note="Two Python files, four stages.">
+      <Section title="The pipeline, in order" note="Five stages, from raw weather to verdict.">
         <BlurFade delay={0.02} duration={0.32} offset={14}>
           <div className="card card-pad">
             <StepList
@@ -102,12 +102,25 @@ export default async function MethodPage() {
                   ),
                 },
                 {
-                  title: "Train and evaluate",
+                  title: "Unsupervised detectors vote",
                   body: (
                     <>
-                      A Random Forest of {metrics.model.trees} trees is scored with 4-fold cross
-                      validation grouped by station, so every prediction comes from a model that never
-                      saw that station.
+                      Isolation Forest, Local Outlier Factor, k-Means distance and PCA reconstruction
+                      error each score every reading without labels. A detector votes when its score is
+                      in its top {percent(1 - metrics.unsupervised.vote_quantile, 0)}, and{" "}
+                      {metrics.unsupervised.votes_needed} votes flag the reading. If the other sensors
+                      of the station are moving too, the flag is an extreme, otherwise a fault.
+                    </>
+                  ),
+                },
+                {
+                  title: "Supervised booster",
+                  body: (
+                    <>
+                      A small Random Forest of {metrics.model.trees} trees takes the features plus the
+                      detector scores and votes, and learns from the injected labels which flags are
+                      real. It is scored with 4-fold cross validation grouped by station, so every
+                      prediction comes from a model that never saw that station.
                     </>
                   ),
                 },
@@ -159,16 +172,16 @@ export default async function MethodPage() {
             <KvList
               rows={[
                 {
-                  key: "Accuracy",
-                  value: `${percent(metrics.range_check.accuracy)} → ${percent(metrics.grouped.accuracy)}`,
+                  key: "Accuracy: range check → unsupervised → boosted",
+                  value: `${percent(metrics.range_check.accuracy)} → ${percent(metrics.unsupervised.grouped.accuracy)} → ${percent(metrics.grouped.accuracy)}`,
                 },
                 {
                   key: "Balanced accuracy",
-                  value: `${percent(metrics.range_check.balanced_accuracy)} → ${percent(metrics.grouped.balanced_accuracy)}`,
+                  value: `${percent(metrics.range_check.balanced_accuracy)} → ${percent(metrics.unsupervised.grouped.balanced_accuracy)} → ${percent(metrics.grouped.balanced_accuracy)}`,
                 },
                 {
                   key: "Macro F1",
-                  value: `${metrics.range_check.macro_f1.toFixed(3)} → ${metrics.grouped.macro_f1.toFixed(3)}`,
+                  value: `${metrics.range_check.macro_f1.toFixed(3)} → ${metrics.unsupervised.grouped.macro_f1.toFixed(3)} → ${metrics.grouped.macro_f1.toFixed(3)}`,
                 },
                 {
                   key: "Always predict normal",
@@ -184,7 +197,9 @@ export default async function MethodPage() {
         <BlurFade delay={0.02} duration={0.32} offset={14}>
           <Callout icon={<WarningCircle size={18} weight="regular" aria-hidden="true" />}>
             <p>
-              The labels come from injection, so the model learns the injected patterns. Short
+              The detectors never see labels, but their vote and coherence thresholds were chosen
+              by checking results against the injected labels. The booster learns from those labels,
+              so it learns the injected patterns. Short
               heavy-rain events and the first hours of a slow drift are the hardest cases. On a real
               network the numbers would be lower until it is retrained on logged failures.{" "}
               <Link href="/model" className="row-link">

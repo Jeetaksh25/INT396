@@ -35,7 +35,7 @@ export function RailNav() {
         </span>
         <span className="brand-text">
           <span className="brand-name">Station Integrity</span>
-          <span className="brand-sub">INT-396 · Supervised</span>
+          <span className="brand-sub">INT-396 · Unsupervised</span>
         </span>
       </Link>
 

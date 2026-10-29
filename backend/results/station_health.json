@@ -7,10 +7,10 @@
     "status": "FAULT",
     "fault_events": 7,
     "extreme_events": 0,
-    "anomalous_percent": 1.7,
+    "anomalous_percent": 1.66,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "stuck",
-    "total_events": 98,
+    "total_events": 99,
     "window_hours": 720
   },
   {
@@ -19,12 +19,12 @@
     "latitude": 19.08,
     "longitude": 72.88,
     "status": "FAULT",
-    "fault_events": 3,
-    "extreme_events": 9,
+    "fault_events": 5,
+    "extreme_events": 12,
     "anomalous_percent": 9.88,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "precision",
-    "total_events": 108,
+    "total_events": 111,
     "window_hours": 720
   },
   {
@@ -33,12 +33,12 @@
     "latitude": 13.08,
     "longitude": 80.27,
     "status": "FAULT",
-    "fault_events": 7,
-    "extreme_events": 11,
-    "anomalous_percent": 18.52,
+    "fault_events": 9,
+    "extreme_events": 14,
+    "anomalous_percent": 16.89,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "dropout",
-    "total_events": 112,
+    "total_events": 131,
     "window_hours": 720
   },
   {
@@ -47,12 +47,12 @@
     "latitude": 17.38,
     "longitude": 78.48,
     "status": "FAULT",
-    "fault_events": 3,
-    "extreme_events": 3,
-    "anomalous_percent": 5.76,
+    "fault_events": 2,
+    "extreme_events": 0,
+    "anomalous_percent": 4.96,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "drift",
-    "total_events": 100,
+    "total_events": 90,
     "window_hours": 720
   },
   {
@@ -66,7 +66,7 @@
     "anomalous_percent": 3.19,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "drift",
-    "total_events": 112,
+    "total_events": 115,
     "window_hours": 720
   },
   {
@@ -76,11 +76,11 @@
     "longitude": 88.36,
     "status": "FAULT",
     "fault_events": 2,
-    "extreme_events": 3,
-    "anomalous_percent": 7.14,
+    "extreme_events": 4,
+    "anomalous_percent": 6.9,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "dropout",
-    "total_events": 110,
+    "total_events": 116,
     "window_hours": 720
   },
   {
@@ -90,11 +90,11 @@
     "longitude": 77.59,
     "status": "FAULT",
     "fault_events": 8,
-    "extreme_events": 11,
-    "anomalous_percent": 10.78,
+    "extreme_events": 8,
+    "anomalous_percent": 8.18,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "spike",
-    "total_events": 112,
+    "total_events": 115,
     "window_hours": 720
   },
   {
@@ -103,12 +103,12 @@
     "latitude": 31.1,
     "longitude": 77.17,
     "status": "FAULT",
-    "fault_events": 4,
+    "fault_events": 3,
     "extreme_events": 2,
-    "anomalous_percent": 4.92,
+    "anomalous_percent": 4.89,
     "last_reading_at": "2023-12-31 23:00:00",
     "last_fault_type": "drift",
-    "total_events": 112,
+    "total_events": 102,
     "window_hours": 720
   }
 ]

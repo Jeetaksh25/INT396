@@ -46,7 +46,7 @@ export default async function EventsPage() {
       <PageHead
         size="large"
         title="What the model decided"
-        description="Consecutive flagged hours on one sensor are grouped into episodes. Each episode takes the class the Random Forest predicted most often inside it."
+        description="Consecutive flagged hours on one sensor are grouped into episodes. Each episode takes the class predicted most often inside it after the booster refines the unsupervised flags."
         aside={
           <>
             <span>{events.length} episodes</span>

@@ -2,7 +2,7 @@
 
 | File | Contents |
 |---|---|
-| `MODEL_EXPLAINED.md` | The whole model in plain words, results, and likely viva questions |
+| `MODEL_EXPLAINED.md` | The unsupervised model and the booster in plain words, results, and likely viva questions |
 | `data_sources.md` | Dataset, licence, citations and stations |
 | `research_paper.tex` | Overleaf-ready IEEE conference paper |
 

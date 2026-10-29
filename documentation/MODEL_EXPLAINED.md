@@ -5,19 +5,19 @@ A plain guide to the project for the presentation and viva.
 ## The problem in one line
 
 A weather station sensor can break (stuck, drifting, noisy, missing), and the weather can also do
-something extreme (heat wave, storm). Both look "unusual". The model looks at every hourly reading
-and says which one it is: **normal**, one of **six faults**, or one of **four extremes**.
+something extreme (heat wave, storm). Both look "unusual". The system finds unusual readings without
+labels and decides whether each is a **fault** or a real **extreme**.
 
-## Two files, that's the whole model
+## The files
 
 | File | What it does |
 |---|---|
-| `backend/generate_data.py` | Loads one year of real hourly weather for 8 Indian cities, injects labelled faults and extremes, saves `data/processed/dataset.csv` |
-| `backend/model.py` | Builds features, trains a Random Forest, scores it, saves the results the dashboard shows |
+| `backend/generate_data.py` | Loads one year of real hourly weather for 8 Indian cities, injects faults and extremes, saves `data/processed/dataset.csv` |
+| `backend/model.py` | **The main unsupervised model**: builds features, runs four unsupervised detectors, votes, separates fault from extreme, saves results |
+| `backend/booster.py` | A small supervised Random Forest that refines the unsupervised verdicts |
+| `backend/main.py` | API that serves the results to the dashboard |
 
-`backend/main.py` is only the API that serves those results to the dashboard.
-
-Run them in order:
+Run:
 
 ```bash
 cd backend
@@ -25,13 +25,15 @@ python generate_data.py
 python model.py
 ```
 
+`model.py` calls the booster itself at the end.
+
 ## Step 1: the data (`generate_data.py`)
 
 - **Real weather:** ERA5 reanalysis from the Open-Meteo archive, 2023, hourly, for Delhi, Mumbai,
   Chennai, Hyderabad, Jaipur, Kolkata, Bengaluru and Shimla. Four sensors each: temperature,
-  humidity, wind speed and pressure. That is 8 × 8,760 hours × 4 sensors = **280,320 readings**.
-- **Why inject?** Nobody publishes logs of broken weather sensors, so there are no real labels. We
-  take real weather and add faults ourselves, so we know exactly which readings are wrong.
+  humidity, wind speed and pressure, giving 8 × 8,760 hours × 4 sensors = **280,320 readings**.
+- **Why inject?** Nobody publishes logs of broken weather sensors. We take real weather and add
+  faults ourselves, so we can check the results afterwards.
 - **Faults** (one sensor at a time, 5 episodes of each type per station):
 
 | Fault | What happens to the reading |
@@ -43,8 +45,7 @@ python model.py
 | precision | coarse rounding plus noise |
 | dropout | readings missing for 6 to 24 hours |
 
-- **Extremes** (several sensors of the station move together, only in their normal season, 2 of
-  each per station):
+- **Extremes** (several sensors move together, only in their season, 2 of each per station):
 
 | Extreme | Sensors | Season |
 |---|---|---|
@@ -53,14 +54,9 @@ python model.py
 | storm | wind +35 km/h, pressure −14 hPa, humidity +18 | Jun to Oct |
 | heavy rain | humidity +28, temperature −6 °C, wind +16 | Jun to Sep |
 
-Extremes rise and fall smoothly (a sine-shaped bump). Only the hours where the bump is above 30% of
-its peak are labelled, because the very start and end look exactly like normal weather.
-
 Final mix: **93.0% normal, 3.9% fault, 3.1% extreme**.
 
 ## Step 2: features (`model.py`, `build_features`)
-
-For every reading, 16 numbers:
 
 | Feature | Meaning | Catches |
 |---|---|---|
@@ -73,55 +69,65 @@ For every reading, 16 numbers:
 | `missing_6h` | missing readings in 6 hours | dropout |
 | `others_dev`, `others_week` | how much the other 3 sensors of the station moved | fault vs extreme |
 | `temp_week`, `humid_week`, `wind_week`, `press_week` | slow movement of each sensor at the station | which extreme |
-| `sensor_code`, `hour` | which sensor, what time of day | context |
+| `sensor_code`, `hour` | which sensor, what time of day | context (booster only) |
 
-The key idea: **a broken sensor moves alone, real weather moves several sensors together.** The
-`others_*` and `*_week` station features give the model that view.
+Key idea: **a broken sensor moves alone, real weather moves several sensors together.**
 
-## Step 3: the model
+## Step 3: the unsupervised model (`model.py`)
 
-- **Random Forest** from scikit-learn: 100 decision trees, max depth 20, at least 2 samples per leaf.
-- Why a Random Forest: no scaling needed, it handles thresholds like "6 identical readings" well,
-  it is hard to overfit with many trees, and it shows which features mattered.
-- It is a **supervised** model: it learns from the labels made in step 1.
+No labels are used to fit any of these. The 14 numeric features are standardised, and each detector
+is fitted on a random sample of 20,000 readings:
 
-## Step 4: honest evaluation
+| Detector | Unusual means | Setting |
+|---|---|---|
+| Isolation Forest | the reading is isolated in few random splits | 200 trees |
+| Local Outlier Factor | the reading sits in a much emptier area than its neighbours | 20 neighbours |
+| k-Means | the reading is far from every cluster centre | 8 clusters |
+| PCA | the reading cannot be rebuilt from the main components | 11 components (90% variance) |
 
-- **4-fold GroupKFold by station.** Stations are split into 4 groups of 2. The model trains on 6
-  stations and predicts the other 2, four times, so every reading is predicted by a model that has
-  never seen that station. Splitting randomly by row would leak neighbouring hours into training.
-- **Baselines:** "always say normal" scores 93.0%, and a fixed physical range check (e.g.
-  temperature outside −5 to 45 °C) scores 94.3%.
+- **Vote:** each detector votes when its score is in its top 5%. **2 of 4 votes** flag the reading.
+- **Fault or extreme:** if the other sensors of the station are also moving (`others_week` > 0.5),
+  it is an **extreme**, otherwise a **fault**.
+
+## Step 4: the supervised booster (`booster.py`)
+
+The unsupervised stage finds unusual readings but flags too many healthy ones, and one simple rule
+can't tell ten event types apart. The booster is a small **Random Forest** (100 trees, depth 20). Its
+inputs are the 16 features plus the four detector scores and the vote count, and it learns from the
+injected labels which flags are real. It is tested with **4-fold GroupKFold by station**: it trains
+on 6 stations and predicts the other 2, so it never sees the station it is scored on.
 
 ## Results
 
-| Metric | Random Forest | Range check |
-|---|---|---|
-| Accuracy (normal / fault / extreme) | **97.9%** | 94.3% |
-| Balanced accuracy | **83.4%** | 44.2% |
-| Macro F1 | **0.877** | 0.485 |
-| Accuracy on all 11 classes | **97.3%** | – |
+| Metric | Range check | Unsupervised | + booster |
+|---|---|---|---|
+| Accuracy (normal / fault / extreme) | 94.3% | 91.8% | **97.9%** |
+| Balanced accuracy | 44.2% | 49.8% | **82.4%** |
+| Macro F1 | 0.485 | 0.528 | **0.876** |
 
-Per class recall: spike 99%, dropout 98%, stuck 87%, storm 87%, precision 71%, cold snap 69%,
-drift 66%, heat wave 65%, bias 52%, heavy rain 19%.
-
-Every station scores between 97.5% and 98.4% accuracy.
-
-Most important features: `dev_week` (21%), `temp_week` (13%), `value_z` (12%), `noise_day` (9%).
+- Always guessing "normal" scores 93.0%. That is why balanced accuracy and macro F1 matter.
+- The unsupervised stage flags 3.4% of healthy readings; with the booster it is 0.3%.
+- 11-class accuracy with the booster: 97.3%. Every station: 97.4% to 98.5%.
+- The booster's top inputs: `dev_week` 16.5%, `temp_week` 10.9%, `value_z` 10.5%, `noise_day` 7.4%,
+  k-Means score 6.3%, Isolation Forest score 5.5%. The detector inputs make up 17.9% in total.
 
 ## Questions you may be asked
 
-**Why is accuracy so high?** Most readings are normal, and the injected faults are clear. That is
-why balanced accuracy and macro F1 are shown too: they weigh the rare classes equally.
+**Is it unsupervised?** The detection stage is: four detectors and a vote, no labels. The booster
+on top is supervised and uses the injected labels; the paper reports both stages separately.
 
-**Why not split by random rows?** Neighbouring hours are almost identical, so the model would see
-the test answers during training. Splitting by station prevents that.
+**Why is the unsupervised accuracy below "always normal"?** It flags 5% of readings, and most of
+those are unusual but healthy weather. Its balanced accuracy and F1 are still better than the
+range check.
 
-**What does the model get wrong?** Heavy rain is short and looks like a normal humid day, and the
-first hours of a drift are tiny. Bias is sometimes confused with a real weather change.
+**Why add a booster?** The detectors tell you a reading is unusual but not why. With a few labelled
+examples, a small model can learn which score patterns mean fault, extreme or nothing.
 
-**Is the data real?** The weather is real ERA5 data. The faults and extremes are injected, because
-labelled failures are not public. This is stated on the dashboard and in the paper.
+**Why split by station?** Neighbouring hours are almost identical, so a random split would leak test
+answers into training.
 
-**Why a Random Forest and not deep learning?** 16 tabular features and 280k rows is a classic
-tabular problem where tree ensembles are strong, fast and explainable.
+**What is still hard?** Heavy rain (short, looks like a humid day), the first hours of a drift, and
+bias that looks like a genuine weather change.
+
+**Is the data real?** The weather is real ERA5 data. Faults and extremes are injected because
+labelled failures are not public.

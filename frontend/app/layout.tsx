@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     template: "%s · Station Integrity",
   },
   description:
-    "Supervised classification of failing weather-station sensors versus genuine extreme events. Eight ERA5 stations, one Random Forest.",
+    "Unsupervised detection of failing weather-station sensors, separated from genuine extreme events, with a small supervised booster. Eight ERA5 stations.",
 };
 
 export default function RootLayout({

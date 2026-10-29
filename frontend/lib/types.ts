@@ -16,6 +16,21 @@ export interface ClassScore {
 export interface MetricsSummary {
   generated_at: string;
   task: string;
+  unsupervised: {
+    detectors: string[];
+    fit_sample: number;
+    vote_quantile: number;
+    votes_needed: number;
+    coherence_threshold: number;
+    pca_components: number;
+    kmeans_clusters: number;
+    lof_neighbours: number;
+    isolation_trees: number;
+    vote_rates: Record<string, number>;
+    flag_rate: number;
+    grouped: ScoreBlock;
+    group_confusion: { labels: string[]; matrix: number[][] };
+  };
   model: {
     name: string;
     trees: number;
