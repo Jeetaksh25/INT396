@@ -104,17 +104,20 @@ def add_fault(kind, x, start, length, sd):
     return hit
 
 
-def build_station(code):
+def build_station(code, busy=None, fault_episodes=FAULT_EPISODES, extreme_episodes=EXTREME_EPISODES, seasonal=True, extreme_kinds=None):
     clean = load_station(code)
     values = {s: clean[s].to_numpy(dtype=float).copy() for s in SENSORS}
     labels = {s: np.array(["normal"] * len(clean), dtype=object) for s in SENSORS}
-    busy = np.zeros(len(clean), dtype=bool)
+    if busy is None:
+        busy = np.zeros(len(clean), dtype=bool)
     month = clean.index.month.to_numpy()
 
     for kind, (months, (low, high), effect) in EXTREMES.items():
-        for _ in range(EXTREME_EPISODES):
+        if extreme_kinds is not None and kind not in extreme_kinds:
+            continue
+        for _ in range(extreme_episodes):
             length = int(rng.integers(low, high))
-            start = free_start(busy, month, months, length)
+            start = free_start(busy, month, months if seasonal else None, length)
             if start is None:
                 continue
             shape = np.sin(np.pi * np.linspace(0, 1, length))
@@ -124,7 +127,7 @@ def build_station(code):
                 labels[sensor][start:start + length][shape > 0.3] = kind
 
     for kind, (low, high) in FAULTS.items():
-        for _ in range(FAULT_EPISODES):
+        for _ in range(fault_episodes):
             length = int(rng.integers(low, high))
             start = free_start(busy, month, None, length)
             if start is None:

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-29T10:36:23.585334+00:00",
+  "generated_at": "2026-10-29T10:59:05.973377+00:00",
   "task": "Unsupervised detection of faulty weather-station sensors, separated from genuine weather extremes, with a small supervised booster that refines the verdicts",
   "unsupervised": {
     "detectors": [
@@ -303,9 +303,9 @@
     "correct_events": 0.8032
   },
   "timing": {
-    "features_seconds": 1.0,
-    "unsupervised_seconds": 95.4,
-    "cross_validation_seconds": 115.8,
-    "total_seconds": 220.4
+    "features_seconds": 0.7,
+    "unsupervised_seconds": 107.8,
+    "cross_validation_seconds": 196.0,
+    "total_seconds": 317.1
   }
 }

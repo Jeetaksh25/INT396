@@ -28,6 +28,7 @@ SAMPLE = 20000
 VOTE_QUANTILE = 0.95
 VOTES_NEEDED = 2
 COHERENCE = 0.5
+BOOSTER_INPUTS = FEATURES + DETECTORS + ["votes"]
 
 
 def series_features(values):
@@ -73,30 +74,50 @@ def range_check(data):
     return (value.isna() | (value < low) | (value > high)).astype(int)
 
 
-def detector_scores(X):
-    scaled = StandardScaler().fit_transform(X)
+def fit_detectors(X):
+    scaler = StandardScaler().fit(X)
+    scaled = scaler.transform(X)
     rng = np.random.default_rng(42)
     sample = scaled[rng.choice(len(scaled), SAMPLE, replace=False)]
-    iso = IsolationForest(n_estimators=200, random_state=42, n_jobs=-1).fit(sample)
-    lof = LocalOutlierFactor(n_neighbors=20, novelty=True, n_jobs=-1).fit(sample)
-    kmeans = KMeans(n_clusters=8, n_init=5, random_state=42).fit(sample)
-    pca = PCA(n_components=0.9, random_state=42).fit(sample)
-    rebuilt = pca.inverse_transform(pca.transform(scaled))
-    found = {
-        "isolation": -iso.score_samples(scaled),
-        "lof": -lof.score_samples(scaled),
-        "kmeans": kmeans.transform(scaled).min(axis=1),
-        "pca": ((scaled - rebuilt) ** 2).sum(axis=1),
+    return {
+        "scaler": scaler,
+        "isolation": IsolationForest(n_estimators=200, random_state=42, n_jobs=-1).fit(sample),
+        "lof": LocalOutlierFactor(n_neighbors=20, novelty=True, n_jobs=-1).fit(sample),
+        "kmeans": KMeans(n_clusters=8, n_init=5, random_state=42).fit(sample),
+        "pca": PCA(n_components=0.9, random_state=42).fit(sample),
     }
-    info = {"pca_components": int(pca.n_components_), "kmeans_clusters": 8, "lof_neighbours": 20, "isolation_trees": 200}
-    return pd.DataFrame(found), info
+
+
+def detector_scores(bank, X):
+    scaled = bank["scaler"].transform(X)
+    rebuilt = bank["pca"].inverse_transform(bank["pca"].transform(scaled))
+    return pd.DataFrame({
+        "isolation": -bank["isolation"].score_samples(scaled),
+        "lof": -bank["lof"].score_samples(scaled),
+        "kmeans": bank["kmeans"].transform(scaled).min(axis=1),
+        "pca": ((scaled - rebuilt) ** 2).sum(axis=1),
+    })
+
+
+def apply_votes(data, bank):
+    found = detector_scores(bank, data[UNSUPERVISED_FEATURES])
+    for name in DETECTORS:
+        data[name] = found[name].to_numpy()
+        data[name + "_vote"] = (data[name] > bank["thresholds"][name]).astype(int)
+    data["votes"] = data[[name + "_vote" for name in DETECTORS]].sum(axis=1)
+    flagged = data["votes"] >= VOTES_NEEDED
+    data["unsupervised_group"] = np.where(~flagged, "normal", np.where(data["others_week"] > COHERENCE, "extreme", "fault"))
 
 
 def unsupervised(data):
-    found, info = detector_scores(data[UNSUPERVISED_FEATURES])
+    bank = fit_detectors(data[UNSUPERVISED_FEATURES])
+    found = detector_scores(bank, data[UNSUPERVISED_FEATURES])
+    bank["thresholds"] = {name: float(found[name].quantile(VOTE_QUANTILE)) for name in DETECTORS}
+    joblib.dump(bank, RESULTS / "detectors.joblib")
+    info = {"pca_components": int(bank["pca"].n_components_), "kmeans_clusters": 8, "lof_neighbours": 20, "isolation_trees": 200}
     for name in DETECTORS:
         data[name] = found[name].to_numpy()
-        data[name + "_vote"] = (data[name] > data[name].quantile(VOTE_QUANTILE)).astype(int)
+        data[name + "_vote"] = (data[name] > bank["thresholds"][name]).astype(int)
     data["votes"] = data[[name + "_vote" for name in DETECTORS]].sum(axis=1)
     data["unsupervised_score"] = data[DETECTORS].rank(pct=True).mean(axis=1)
     flagged = data["votes"] >= VOTES_NEEDED
@@ -173,6 +194,7 @@ def train():
     data = build_features(data)
     feature_seconds = time.time() - started
 
+    RESULTS.mkdir(exist_ok=True)
     detector_info = unsupervised(data)
     data["baseline_flag"] = range_check(data)
     unsupervised_seconds = time.time() - started - feature_seconds
@@ -181,8 +203,7 @@ def train():
     first_matrix = confusion_matrix(data["group"], data["unsupervised_group"], labels=groups)
     print("unsupervised", first)
 
-    RESULTS.mkdir(exist_ok=True)
-    inputs = FEATURES + DETECTORS + ["votes"]
+    inputs = BOOSTER_INPUTS
     y = data["label"]
     data["predicted_label"], data["anomaly_score"], model = boost(data[inputs], y, data["station_id"], RESULTS / "model.joblib")
     data["predicted_group"] = data["predicted_label"].map(label_group)

@@ -16,6 +16,7 @@ labels and decides whether each is a **fault** or a real **extreme**.
 | `backend/model.py` | **The main unsupervised model**: builds features, runs four unsupervised detectors, votes, separates fault from extreme, saves results |
 | `backend/booster.py` | A small supervised Random Forest that refines the unsupervised verdicts |
 | `backend/main.py` | API that serves the results to the dashboard |
+| `backend/simulation.py` | Powers the Simulation tab: a fresh random window scored live by the saved detectors and booster |
 
 Run:
 

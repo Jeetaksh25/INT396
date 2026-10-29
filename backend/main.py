@@ -1,11 +1,15 @@
 import json
+import queue
+import threading
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from generate_data import STATIONS
 from model import RESULTS
+from simulation import run_simulation
 
 DETECTIONS_CSV = RESULTS / "detections.csv"
 EVENTS_CSV = RESULTS / "detection_events.csv"
@@ -267,3 +271,38 @@ def events(
 @app.get("/api/model")
 def model_card():
     return metrics()
+
+
+@app.get("/api/simulation/events")
+def simulation_events(
+    seed: int = Query(default=1, ge=0, le=999999),
+    profile: str = Query(default="balanced"),
+):
+    channel = queue.Queue()
+
+    def emit(phase, fraction, detail):
+        channel.put({"phase": phase, "fraction": round(float(fraction), 3), "detail": detail})
+
+    def worker():
+        try:
+            summary = run_simulation(seed or 1, progress=emit, operating_point=profile)
+            channel.put({"phase": "complete", "fraction": 1.0, "result": summary})
+        except Exception as error:
+            channel.put({"phase": "failed", "fraction": 1.0, "detail": str(error)})
+        finally:
+            channel.put(None)
+
+    threading.Thread(target=worker, daemon=True).start()
+
+    def stream():
+        while True:
+            item = channel.get()
+            if item is None:
+                break
+            yield f"data: {json.dumps(item, default=str)}\n\n"
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

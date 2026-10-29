@@ -6,7 +6,7 @@ set API_PORT=8000
 set WEB_PORT=3000
 
 echo ============================================
-echo  INT396 - Sensor Fault Classifier Dashboard
+echo  INT396 - Sensor Fault Discovery Dashboard
 echo ============================================
 echo.
 
@@ -24,11 +24,16 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist "backend\results\metrics.json" (
-    echo [1/4] Results missing. Generating data and training the model, this takes a few minutes...
+echo [0/4] Checking Python packages...
+python -m pip install -q -r backend\requirements.txt
+if errorlevel 1 goto failed
+
+set NEED_MODEL=0
+if not exist "backend\results\metrics.json" set NEED_MODEL=1
+if not exist "backend\results\detections.csv" set NEED_MODEL=1
+if "%NEED_MODEL%"=="1" (
+    echo [1/4] Results missing. Generating data and running the model, this takes about 4 minutes...
     pushd backend
-    python -m pip install -r requirements.txt
-    if errorlevel 1 goto failed
     python generate_data.py
     if errorlevel 1 goto failed
     python model.py
@@ -78,7 +83,7 @@ set "NEXT_PUBLIC_API_URL=http://127.0.0.1:%API_PORT%"
 start "INT396 Dashboard" cmd /k "cd /d %~dp0frontend && npx next dev --port %WEB_PORT%"
 
 echo Waiting for both servers...
-timeout /t 14 /nobreak >nul
+timeout /t 20 /nobreak >nul
 start "" http://localhost:%WEB_PORT%
 
 echo.
