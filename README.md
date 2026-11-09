@@ -47,4 +47,5 @@ npm run dev
 | `backend/simulation.py` | Live simulation: random 21-day window, fresh faults, both stages scored |
 | `frontend/` | Dashboard: overview, stations, events, simulation, method, model card |
 | `documentation/MODEL_EXPLAINED.md` | The model in plain words, plus viva questions |
+| `documentation/data_sources.md` | Dataset, licence, citations and stations |
 | `documentation/research_paper.tex` | IEEE paper for Overleaf |

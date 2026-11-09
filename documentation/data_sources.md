@@ -11,7 +11,7 @@
 | Licence | CC BY 4.0 |
 | Date range | 2023-01-01 → 2023-12-31, hourly, UTC |
 | Stations | 8 Indian cities |
-| Variables | temperature_2m, relative_humidity_2m, wind_speed_10m, pressure_msl, precipitation |
+| Variables | temperature_2m, relative_humidity_2m, wind_speed_10m, pressure_msl |
 
 ### Citations
 
@@ -46,9 +46,12 @@ cool hill station (SLM), so the model is tested on climates it did not train on.
 ## Preprocessing
 
 1. Each station has 8,760 hourly rows from `2023-01-01 00:00` to `2023-12-31 23:00`.
-2. Gaps of at most 2 hours are linearly interpolated on the clean series before injection, so the
-   only missing values left are the injected dropouts.
-3. Faults and extremes are injected and every changed reading gets its label.
+2. The archive has no missing hours (0 missing values across the eight files), so nothing needs filling.
+   The loader still interpolates gaps of up to 2 hours and carries the last valid value across any longer
+   gap, as a safeguard. The only missing values in the final dataset are the injected dropouts.
+3. Faults and extremes are injected and labelled. Every changed fault reading gets its fault label.
+   Extreme labels cover only hours where the bump exceeds 30% of its peak, so the ramp-up and ramp-down
+   hours stay labelled normal.
 
 ## Why synthetic faults
 

@@ -124,8 +124,9 @@ Hourly temperature, relative humidity, 10\,m wind speed and mean sea-level press
 taken from the Open-Meteo archive~\cite{openmeteo}, which serves ERA5 reanalysis~\cite{hersbach2020}.
 The eight stations (Delhi, Mumbai, Chennai, Hyderabad, Jaipur, Kolkata, Bengaluru, Shimla) cover
 arid, coastal, tropical, inland and hill climates. Each station has 8{,}760 hours, giving
-280{,}320 sensor readings. Gaps of at most two hours were linearly interpolated before injection, so
-the only missing values left are injected dropouts.
+280{,}320 sensor readings. The archive has no missing hours, so no gap filling was needed; the loader
+interpolates gaps of up to two hours as a safeguard. The only missing values in the dataset are the
+injected dropouts.
 
 \subsection{Injected faults}
 Faults affect one sensor at a time, as a real failing instrument does. Each station receives five
@@ -204,8 +205,8 @@ sensor\_code, hour & sensor identity and hour of day \\
 The numeric features are standardised, and four detectors from scikit-learn~\cite{pedregosa2011}
 are fitted on a random sample of 20{,}000 readings without any label:
 \begin{itemize}
-\item \emph{Isolation Forest}~\cite{liu2008} with 200 trees; the score is the negative mean path
-length;
+\item \emph{Isolation Forest}~\cite{liu2008} with 200 trees; the score rises when a reading is isolated
+in fewer random splits;
 \item \emph{Local Outlier Factor}~\cite{breunig2000} with 20 neighbours in novelty mode;
 \item \emph{k-Means} with 8 clusters; the score is the distance to the nearest centroid;
 \item \emph{PCA} keeping 90\% of the variance (11 components); the score is the squared
@@ -268,8 +269,9 @@ train on.
 Table~\ref{tab:cm} shows the three-group confusion matrices. The unsupervised stage finds 39.1\% of
 fault readings but only 13.7\% of extreme readings, and raises alarms on 3.4\% of normal readings.
 The booster cuts false alarms to 0.3\% and lifts recall to 83.2\% for faults and 64.3\% for
-extremes. Its main remaining error is missed extremes, mostly from the shoulders of long events and
-from short heavy-rain episodes.
+extremes. Its main remaining error is missed extremes. Heat waves make up half of the missed hours,
+heavy rain has the highest miss rate (54\%), and the first and last three labelled hours of each event
+are missed 71\% of the time, against 29\% in its core.
 
 \begin{table}[t]
 \caption{Confusion matrices (rows: truth, share of row)}
@@ -360,9 +362,9 @@ unsupervised detector scores.}
 \end{figure}
 
 \subsection{Episodes}
-Consecutive flagged hours on one sensor, with gaps of at most three hours, are merged into episodes
-for the dashboard. The boosted model produces 879 episodes (594 fault, 285 extreme), and 80.3\% of
-them carry the correct group.
+Flagged hours on one sensor are merged into episodes for the dashboard. Consecutive hours form one
+episode, gaps of up to three hours are bridged, and a change of predicted group starts a new episode.
+The boosted model produces 879 episodes (594 fault, 285 extreme), and 80.3\% of them carry the correct group.
 
 \section{Discussion}
 The unsupervised detectors do what they are designed for: they rank unusual readings without any
