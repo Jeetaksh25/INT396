@@ -108,7 +108,7 @@ on 6 stations and predicts the other 2, so it never sees the station it is score
 
 - Always guessing "normal" scores 93.0%. That is why balanced accuracy and macro F1 matter.
 - The unsupervised stage flags 3.4% of healthy readings; with the booster it is 0.3%.
-- 11-class accuracy with the booster: 97.3%. Every station: 97.4% to 98.5%.
+- 11-class accuracy with the booster: 97.3%. Per station (3-group accuracy): 97.4% to 98.5%.
 - The booster's top inputs: `dev_week` 16.5%, `temp_week` 10.9%, `value_z` 10.5%, `noise_day` 7.4%,
   k-Means score 6.3%, Isolation Forest score 5.5%. The detector inputs make up 17.9% in total.
 
