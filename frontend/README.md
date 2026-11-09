@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend · Station Integrity dashboard
 
-## Getting Started
+The web dashboard for the sensor-fault project. It reads everything from the FastAPI service in `../backend`, so start the backend first.
 
-First, run the development server:
+## Stack
+
+Next.js 16 (App Router), React 19, Tailwind CSS 4, Recharts for charts and Motion for animation.
+
+## Pages
+
+| Route | What it shows |
+|---|---|
+| `/` | Overview: headline metrics, 30-day network timeline and a ranked station health table |
+| `/stations` | All eight stations with their current status and anomaly rate |
+| `/stations/[station_id]` | One station: sensor summaries, time series and recent detections |
+| `/events` | Detected fault and extreme events |
+| `/simulation` | Live simulation: a fresh 21-day window scored by the detectors and the booster |
+| `/method` | How the model works, with the live numbers |
+| `/model` | Model card: detectors, booster, confusion matrices and per-class results |
+
+## Running
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`. Keep the dashboard on port 3000: the API's CORS allowlist only includes `localhost:3000` and `127.0.0.1:3000`, and the event ticker calls the API from the browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`NEXT_PUBLIC_API_URL` sets the API address (default `http://127.0.0.1:8000`).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+For a production build run `npm run build` and then `npm start`.
 
-## Learn More
+## Layout
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Path | What it is |
+|---|---|
+| `app/` | Pages, plus the `app/api/` route handlers that proxy the API for client components |
+| `components/` | Feature components: simulation studio, charts, event ticker, navigation and top bar |
+| `components/ui/` | Reusable primitives |
+| `lib/api.ts` | Typed fetch wrappers, one per API endpoint |
+| `lib/types.ts`, `lib/simulation-types.ts` | Response types that mirror the backend |
